@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Court Booking — Live Demo</title>
+<meta name="description" content="Live demo of an online pickleball court booking system with owner dashboard — by Raj.">
+<style>
+  :root{
+    --ink:#12275C; --ink2:#17306E; --teal:#1E50C8; --teald:#1A44AD;
+    --lime:#F26A21; --mist:#EEF2FB; --mist2:#E3EAF7; --line:#D5DFF1;
+    --muted:#5C6A86; --dark:#14213D; --white:#fff;
+    --ok:#1E50C8; --warn:#C9832B; --bad:#B23B3B; --shadow:0 8px 24px rgba(11,20,45,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--mist);color:var(--dark);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 16px}
+  header{background:var(--ink);color:#fff;position:sticky;top:0;z-index:20}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;max-width:1000px;margin:0 auto;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:.2px}
+  .ball{width:26px;height:26px;border-radius:50%;background:var(--lime);position:relative;flex:none}
+  .ball::before{content:"";position:absolute;width:4px;height:4px;background:rgba(18,39,92,.55);border-radius:50%;top:5px;left:10px;box-shadow:8px 4px 0 rgba(18,39,92,.55),-4px 8px 0 rgba(18,39,92,.55),10px 11px 0 rgba(18,39,92,.55)}
+  .seg{display:flex;background:rgba(255,255,255,.1);border-radius:999px;padding:4px}
+  .seg button{border:0;background:transparent;color:#B9C6E8;font-weight:700;font-size:13.5px;padding:8px 16px;border-radius:999px;cursor:pointer;transition:.15s}
+  .seg button.on{background:var(--lime);color:var(--ink)}
+  .demoflag{background:var(--lime);color:var(--ink);font-weight:800;font-size:11px;letter-spacing:.5px;text-align:center;padding:5px}
+  .howto{background:var(--ink);color:#dbe4f7;font-size:13px;text-align:center;padding:9px 16px;line-height:1.5}
+  .howto b{color:#fff}
+  .howto .step{white-space:nowrap}
+  /* Hero + background video */
+  .hero{position:relative;overflow:hidden;background:linear-gradient(160deg,var(--ink) 0%,var(--teald) 120%);color:#fff;padding:30px 0 60px}
+  #bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.28}
+  .hero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(160deg,rgba(18,39,92,.72) 0%,rgba(26,68,173,.78) 120%)}
+  @media (prefers-reduced-motion: reduce){#bg-video{display:none}}
+  .hero .wrap{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+  .hero h1{font-size:30px;font-weight:800;margin-bottom:6px}
+  .hero p{color:#D3DDF3;font-size:15px;max-width:520px}
+  .hero .meta{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap}
+  .hero .meta span{font-size:13px;color:#CCD7F1;display:flex;align-items:center;gap:6px}
+  .panel{background:#fff;border-radius:16px;box-shadow:var(--shadow);margin:-38px auto 40px;overflow:hidden;position:relative;z-index:5}
+  .pad{padding:22px 24px}
+  h2.sec{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:3px}
+  .subtle{color:var(--muted);font-size:13.5px}
+  .steps{display:flex;gap:8px;padding:16px 24px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .step{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);font-weight:600}
+  .step .n{width:24px;height:24px;border-radius:50%;background:var(--mist2);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+  .step.active .n{background:var(--teal);color:#fff}
+  .step.done .n{background:var(--lime);color:var(--ink)}
+  .step.active{color:var(--ink)}
+  .label{font-weight:700;font-size:13px;color:var(--ink);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.4px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .chip{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;text-align:center;min-width:64px;transition:.12s;font-weight:600;color:var(--dark)}
+  .chip small{display:block;color:var(--muted);font-weight:600;font-size:11px}
+  .chip:hover{border-color:var(--teal)}
+  .chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+  .chip.on small{color:#D5E0FA}
+  .calbtn{border:1.5px dashed var(--teal);background:#fff;color:var(--teal);border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:700;font-size:13px;transition:.12s}
+  .calbtn:hover{background:var(--mist)}
+  /* Month calendar popover */
+  .calpop{margin-top:12px;border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff;max-width:340px}
+  .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .calhead b{color:var(--ink);font-size:15px}
+  .calnav{border:1.5px solid var(--line);background:#fff;border-radius:8px;width:30px;height:30px;font-size:16px;font-weight:800;color:var(--ink);cursor:pointer;line-height:1}
+  .calnav:disabled{opacity:.35;cursor:not-allowed}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .caldow{text-align:center;font-size:11px;font-weight:800;color:var(--muted);padding:4px 0}
+  .calday{text-align:center;padding:8px 0;border-radius:8px;font-size:13px;font-weight:700;color:var(--dark);cursor:pointer;border:1.5px solid transparent}
+  .calday:hover{border-color:var(--teal)}
+  .calday.muted{color:var(--line);cursor:default;pointer-events:none}
+  .calday.past{color:#B9C2D6;cursor:not-allowed;pointer-events:none}
+  .calday.today{box-shadow:inset 0 0 0 1.5px var(--lime)}
+  .calday.sel{background:var(--teal);color:#fff}
+  .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:4px}
+  .slot{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px;cursor:pointer;transition:.12s}
+  .slot .t{font-weight:800;color:var(--ink);font-size:14px}
+  .slot .p{color:var(--teal);font-weight:800;font-size:13px;margin-top:2px}
+  .slot:hover{border-color:var(--teal)}
+  .slot.on{background:var(--teal);border-color:var(--teal)}
+  .slot.on .t,.slot.on .p{color:#fff}
+  .slot.booked{background:var(--mist);border-style:dashed;cursor:not-allowed;opacity:.7}
+  .slot.booked .t{color:var(--muted)}
+  .slot.booked .tag{font-size:10px;color:var(--muted);font-weight:700}
+  .slot.reach{border-style:dashed;border-color:var(--teal)}
+  .slot.reach .p{color:var(--teald);font-weight:700}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-weight:700;font-size:13px;color:var(--ink);margin-bottom:5px}
+  .field input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit}
+  .field input:focus{outline:none;border-color:var(--teal)}
+  .summary{background:var(--mist);border-radius:12px;padding:16px}
+  .summary .sr{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
+  .summary .sr b{color:var(--ink)}
+  .summary .tot{border-top:1px dashed var(--line);margin-top:6px;padding-top:10px;font-size:17px}
+  .summary .tot b{color:var(--teal)}
+  .grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:22px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  .btn{background:var(--teal);color:#fff;border:0;border-radius:12px;padding:13px 22px;font-size:15px;font-weight:800;cursor:pointer;transition:.15s;font-family:inherit}
+  .btn:hover{background:var(--teald)}
+  .btn:disabled{background:var(--mist2);color:var(--muted);cursor:not-allowed}
+  .btn.lime{background:var(--lime);color:var(--ink)}
+  .btn.lime:disabled{background:var(--mist2);color:var(--muted)}
+  .btn.ghost{background:transparent;color:var(--muted);font-weight:700}
+  .btnrow{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:10px}
+  .paybox{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+  .qr{width:150px;height:150px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;grid-template-columns:repeat(21,1fr);grid-template-rows:repeat(21,1fr);flex:none}
+  .qr i{background:var(--ink)}
+  .paynote{font-size:13px;color:var(--muted);max-width:280px}
+  .payopts{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+  .payopt{border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13px;color:var(--ink)}
+  /* Proof of payment upload */
+  .proofwrap{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .proof-file{display:block;width:100%;font-size:13px;color:var(--muted);margin-top:6px}
+  .proof-file::file-selector-button{border:1.5px solid var(--teal);background:#fff;color:var(--teal);border-radius:9px;padding:8px 12px;font-weight:800;font-size:12.5px;margin-right:10px;cursor:pointer;font-family:inherit}
+  #proofPreview{max-width:110px;max-height:110px;border-radius:10px;margin-top:10px;border:1px solid var(--line);display:none;object-fit:cover}
+  #fileStatus{font-size:12.5px;margin-top:6px;color:var(--muted)}
+  .policy{background:var(--mist);border-radius:12px;padding:12px 14px;margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .policy label{display:flex;gap:8px;align-items:flex-start;margin-top:8px;color:var(--dark);font-weight:600;cursor:pointer}
+  .policy input{margin-top:2px}
+  .conf{text-align:center;padding:20px 10px}
+  .checkbig{width:66px;height:66px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .checkbig svg{width:34px;height:34px}
+  .ref{display:inline-block;background:var(--mist);border-radius:10px;padding:8px 16px;font-weight:800;color:var(--ink);letter-spacing:1px;margin-top:6px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+  .stat .k{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .stat .v{font-size:26px;font-weight:800;color:var(--ink);margin-top:4px}
+  .stat .v.money{color:var(--teal)}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  th{background:var(--ink);color:#fff;text-align:left;font-size:12px;letter-spacing:.4px;padding:12px 14px;font-weight:700}
+  td{padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px}
+  tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:800}
+  .pill.pend{background:#FBEFD9;color:var(--warn)}
+  .pill.conf{background:#E1E9FB;color:var(--ok)}
+  .pill.canc{background:#F3E1E1;color:#B23B3B}
+  .mini{border:0;border-radius:8px;padding:6px 11px;font-size:12px;font-weight:800;cursor:pointer;margin-right:6px}
+  .mini.ok{background:var(--teal);color:#fff}
+  .mini.no{background:var(--mist2);color:var(--muted)}
+  .mini.alt{background:#fff;color:var(--teal);box-shadow:inset 0 0 0 1.5px var(--teal)}
+  .hint{background:var(--ink);color:#fff;border-radius:12px;padding:14px 18px;font-size:14px;display:flex;gap:10px;align-items:center;margin-bottom:18px}
+  .hint .d{width:10px;height:10px;border-radius:50%;background:var(--lime);flex:none}
+  .manual{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0}
+  .manual .fld{display:flex;flex-direction:column;gap:4px}
+  .manual label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .manual select{padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;color:var(--dark);background:#fff}
+  /* Court Matrix */
+  .matlegend{display:flex;gap:16px;flex-wrap:wrap;margin:4px 0 16px;font-size:12.5px;color:var(--muted)}
+  .matlegend span{display:flex;align-items:center;gap:6px}
+  .matkey{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);flex:none}
+  .matkey.free{background:#fff}
+  .matkey.busy{background:var(--ink);border-color:var(--ink)}
+  .matkey.pend{background:#FBEFD9;border-color:#EAD5A8}
+  .matkey.block{background:repeating-linear-gradient(45deg,#EEF2FB,#EEF2FB 4px,#D5DFF1 4px,#D5DFF1 8px)}
+  .matwrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow)}
+  .matgrid{display:grid;min-width:520px}
+  .mathead,.mattime,.matcell{border-bottom:1px solid var(--line);border-right:1px solid var(--line);font-size:12px;text-align:center;padding:9px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mathead{background:var(--ink);color:#fff;font-weight:800}
+  .mattime{background:var(--mist);color:var(--muted);font-weight:700}
+  .matcell.free{cursor:pointer;color:var(--teal);font-weight:700}
+  .matcell.free:hover{background:var(--mist2)}
+  .matcell.busy{background:var(--ink);color:#fff;font-weight:700}
+  .matcell.pend{background:#FBEFD9;color:var(--warn);font-weight:800}
+  .matcell.block{background:repeating-linear-gradient(45deg,#EEF2FB,#EEF2FB 5px,#E3EAF7 5px,#E3EAF7 10px);color:var(--muted);font-weight:700}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:26px 16px 40px}
+  footer b{color:var(--ink)}
+  footer a{color:var(--teal);text-decoration:none;font-weight:700}
+  .hide{display:none!important}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:#fff;padding:13px 20px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:var(--shadow);transition:.35s;z-index:80;opacity:0;visibility:hidden}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible}
+  .toast .d{color:var(--lime)}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(18,39,92,.5);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+  .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:440px;overflow:hidden}
+  .modal-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+  .modal-title{font-weight:800;font-size:17px;color:var(--ink)}
+  .modal-sub{font-size:13px;color:var(--muted);margin-top:2px}
+  .modal-x{border:0;background:transparent;font-size:24px;line-height:1;color:var(--muted);cursor:pointer;padding:0 4px}
+  .modal-b{padding:18px 20px}
+  .rs-current{background:var(--mist);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--dark);margin-bottom:14px}
+  .rs-current b{color:var(--ink)}
+  .rs-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .rs-grid>div:first-child{grid-column:1/-1}
+  .rs-grid label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+  .rs-grid select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;color:var(--dark);background:#fff}
+  .rs-note{font-size:13px;margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--mist);color:var(--muted)}
+  .rs-note.ok{background:#E1E9FB;color:var(--ok)}
+  .rs-note.bad{background:#F3E1E1;color:#B23B3B}
+  .modal-f{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="demoflag">LIVE DEMO — sample data, no real payment is taken</div>
+<div class="howto"><b>How to try it:</b> 1) pick a date, court &amp; time · 2) go through payment (it's simulated) · 3) open <b>Owner Dashboard</b> &amp; <b>Court Matrix</b> to watch it update</div>
+<header>
+  <div class="bar">
+    <div class="brand"><span class="ball" id="brandBall"></span> <span id="brandVenue">Venue</span></div>
+    <div class="seg">
+      <button id="tabCust" class="on" onclick="setView('cust')">Book a Court</button>
+      <button id="tabOwner" onclick="setView('owner')">Owner Dashboard</button>
+      <button id="tabMatrix" onclick="setView('matrix')">Court Matrix</button>
+    </div>
+  </div>
+</header>
+
+<main id="viewCust">
+  <section class="hero">
+    <video id="bg-video" autoplay loop muted playsinline></video>
+    <div class="wrap"><div>
+      <h1 id="heroTitle">Book your court</h1>
+      <p id="heroSub">Pick a slot, pay, and you're confirmed instantly.</p>
+      <div class="meta" id="metaRow"></div>
+    </div></div>
+  </section>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="steps">
+        <div class="step active" id="st1"><span class="n">1</span> Choose slot</div>
+        <div class="step" id="st2"><span class="n">2</span> Your details</div>
+        <div class="step" id="st3"><span class="n">3</span> Payment</div>
+        <div class="step" id="st4"><span class="n">4</span> Done</div>
+      </div>
+
+      <div class="pad" id="screen1">
+        <h2 class="sec">Choose your slot</h2>
+        <div class="subtle">Live availability — booked slots are greyed out.</div>
+        <div class="label">Date</div>
+        <div class="row" id="dateRow"></div>
+        <div id="calPop" class="calpop hide"></div>
+        <div class="label">Court</div><div class="row" id="courtRow"></div>
+        <div class="label">Time — tap your start, then your end</div><div class="slots" id="slotGrid"></div>
+        <div class="btnrow">
+          <span class="subtle" id="slotHint">Select a time slot to continue.</span>
+          <button class="btn" id="toStep2" disabled onclick="goStep(2)">Continue →</button>
+        </div>
+      </div>
+
+      <div class="pad hide" id="screen2">
+        <div class="grid2">
+          <div>
+            <h2 class="sec">Your details</h2>
+            <div class="subtle" style="margin-bottom:14px">We'll send your confirmation here.</div>
+            <div class="field"><label>Full name</label><input id="fName" placeholder="Juan Dela Cruz"></div>
+            <div class="field"><label>Email</label><input id="fEmail" placeholder="juan@email.com"></div>
+            <div class="field"><label>Mobile number</label><input id="fPhone" placeholder="0917 000 0000"></div>
+          </div>
+          <div><div class="label">Booking summary</div><div class="summary" id="summary2"></div></div>
+        </div>
+        <div class="btnrow">
+          <button class="btn ghost" onclick="goStep(1)">← Back</button>
+          <button class="btn" onclick="goStep(3)">Continue to payment →</button>
+        </div>
+      </div>
+
+      <div class="pad hide" id="screen3">
+        <div class="grid2">
+          <div>
+            <h2 class="sec">Pay to confirm</h2>
+            <div class="subtle" style="margin-bottom:14px">Scan the QR to pay, then upload your receipt.</div>
+            <div class="paybox">
+              <div class="qr" id="qr"></div>
+              <div>
+                <div style="font-weight:800;color:var(--ink);font-size:15px">Pay <span id="payAmt"></span></div>
+                <div id="gcashLine" style="font-size:13px;font-weight:700;color:var(--teal);margin:4px 0"></div>
+                <div class="paynote" id="gcashNote"></div>
+              </div>
+            </div>
+            <div class="payopts" id="payOpts"></div>
+
+            <div class="proofwrap">
+              <div class="field" style="margin-bottom:10px">
+                <label>GCash reference no.</label>
+                <input id="payRef" placeholder="13-digit ref no. on your receipt" maxlength="30" oninput="validatePay()">
+              </div>
+              <label style="display:block;font-weight:700;font-size:13px;color:var(--ink);margin-bottom:5px">Upload payment proof</label>
+              <input type="file" id="proofInput" class="proof-file" accept="image/*" onchange="handleProof(this)">
+              <img id="proofPreview" alt="Payment proof preview">
+              <p id="fileStatus"></p>
+            </div>
+
+            <div class="policy">
+              <b style="color:var(--ink)">Booking policy:</b> Payment first. Bookings are final and
+              non-refundable unless affected by force majeure.
+              <label><input type="checkbox" id="termsCheck" onchange="validatePay()"> I understand and agree to the booking policy.</label>
+            </div>
+          </div>
+          <div><div class="label">Booking summary</div><div class="summary" id="summary3"></div></div>
+        </div>
+        <div class="btnrow">
+          <button class="btn ghost" onclick="goStep(2)">← Back</button>
+          <button class="btn lime" id="confirmBtn" disabled onclick="confirmBooking()">I've paid — confirm booking ✓</button>
+        </div>
+      </div>
+
+      <div class="pad hide" id="screen4">
+        <div class="conf">
+          <div class="checkbig"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#12275C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h2 class="sec" style="font-size:22px">You're booked!</h2>
+          <div class="subtle">A confirmation has been emailed to <b id="confEmail"></b>.</div>
+          <div class="ref" id="confRef"></div>
+          <div style="margin-top:16px">
+            <img id="bookQR" src="" alt="Check-in QR" style="width:132px;height:132px;border:1.5px solid var(--line);border-radius:12px;padding:8px;background:#fff">
+            <div class="subtle" style="margin-top:8px;max-width:360px;margin-left:auto;margin-right:auto">This QR is in your confirmation email too — show it at the front desk and staff scan it with any phone to check you in.</div>
+          </div>
+          <div class="summary" id="summary4" style="max-width:340px;margin:18px auto 0;text-align:left"></div>
+          <div style="margin-top:18px">
+            <button class="btn" onclick="setView('owner')">See it in the Owner Dashboard →</button>
+            <button class="btn ghost" onclick="resetFlow()">Book another</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<main id="viewOwner" class="hide">
+  <section class="hero" style="padding:30px 0 34px"><div class="wrap"><div>
+    <h1>Owner Dashboard</h1>
+    <p>Every booking, court and peso in one place — the view your customers never see.</p>
+  </div></div></section>
+  <div class="wrap" style="margin-top:22px">
+    <div class="hint"><span class="d"></span> Just booked a slot? It shows up below as <b>&nbsp;Pending&nbsp;</b> — tap Confirm and watch today's income update.</div>
+    <div class="stats">
+      <div class="stat"><div class="k">Today's bookings</div><div class="v" id="stBookings">0</div></div>
+      <div class="stat"><div class="k">Today's income</div><div class="v money" id="stIncome">0</div></div>
+      <div class="stat"><div class="k">Pending</div><div class="v" id="stPending">0</div></div>
+      <div class="stat"><div class="k">This week</div><div class="v money" id="stWeek">0</div></div>
+    </div>
+    <div class="manual">
+      <div class="fld"><label>Type</label><select id="mType"><option value="walkin">Walk-in booking</option><option value="vip">VIP session</option><option value="block">Block slot (maintenance)</option></select></div>
+      <div class="fld"><label>Court</label><select id="mCourt" onchange="refreshManualEnd()"></select></div>
+      <div class="fld"><label>Date</label><select id="mDate" onchange="refreshManualEnd()"></select></div>
+      <div class="fld"><label>Start</label><select id="mStart" onchange="refreshManualEnd()"></select></div>
+      <div class="fld"><label>End</label><select id="mEnd"></select></div>
+      <button class="btn" onclick="addManual()">Add to schedule</button>
+      <span class="subtle" style="flex-basis:100%">Your schedule, your rules — walk-ins, VIP sessions and maintenance blocks vanish from the public calendar instantly.</span>
+    </div>
+    <table>
+      <thead><tr><th>Customer</th><th>Court</th><th>Date &amp; time</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="ownerRows"></tbody>
+    </table>
+  </div>
+</main>
+
+<main id="viewMatrix" class="hide">
+  <section class="hero" style="padding:30px 0 34px"><div class="wrap"><div>
+    <h1>Court Matrix</h1>
+    <p>Your whole day at a glance — every court, every hour. Tap any open slot to drop in a walk-in.</p>
+  </div></div></section>
+  <div class="wrap" style="margin-top:22px">
+    <div class="label" style="margin-top:0">Date</div>
+    <div class="row" id="matDateRow"></div>
+    <div class="matlegend">
+      <span><i class="matkey free"></i> Open (tap to book)</span>
+      <span><i class="matkey busy"></i> Booked</span>
+      <span><i class="matkey pend"></i> Pending</span>
+      <span><i class="matkey block"></i> Blocked / maintenance</span>
+    </div>
+    <div class="matwrap"><div class="matgrid" id="matGrid"></div></div>
+    <p class="subtle" style="margin-top:12px">Tip: this is the same live schedule as the Owner Dashboard and the public calendar — book here and it updates everywhere instantly.</p>
+  </div>
+</main>
+
+<footer id="footLine"></footer>
+
+<div class="modal-backdrop hide" id="rsBackdrop" onclick="if(event.target===this)closeReschedule()">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Reschedule booking">
+    <div class="modal-h">
+      <div>
+        <div class="modal-title">Reschedule booking</div>
+        <div class="modal-sub" id="rsWho"></div>
+      </div>
+      <button class="modal-x" onclick="closeReschedule()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-b">
+      <div class="rs-current" id="rsCurrent"></div>
+      <div class="rs-grid">
+        <div><label>New date</label><select id="rsDate" onchange="rsRefresh()"></select></div>
+        <div><label>New court</label><select id="rsCourt" onchange="rsRefresh()"></select></div>
+        <div><label>New start time</label><select id="rsHour" onchange="rsPreview()"></select></div>
+      </div>
+      <div class="rs-note" id="rsNote"></div>
+    </div>
+    <div class="modal-f">
+      <button class="btn ghost" onclick="closeReschedule()">Cancel</button>
+      <button class="btn" id="rsSave" onclick="saveReschedule()">Save new slot</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   CONFIG — edit anything here to re-skin the whole demo for a client.
+   Change the venue name, hours, courts, prices, colours and GCash
+   details, and the entire booking site + owner dashboard updates.
+   ================================================================ */
+const CONFIG = {
+  brand:    "Raj",                          // shown in footer as "by Raj"; set "" to hide
+  venue:    "CourtQ Pickleball",            // the court business name shown to customers
+  tagline:  "Book your court in under a minute",
+  subtag:   "Pick a slot, pay by GCash, and you're confirmed instantly. No messages, no waiting.",
+  location: "Metro Manila",
+  openHour: 6,                              // 6:00 AM
+  closeHour: 23,                            // 11:00 PM
+  courts:   ["Court 1", "Court 2", "Court 3"],
+  currency: "₱",
+  price:    { offPeak: 250, peak: 350, peakStart: 17, peakEnd: 22 }, // day / evening rate
+  payMethods: ["GCash", "Maya", "Cash on arrival"],
+  gcashName: "COURTQ PICKLEBALL (demo)",
+  gcashNumber: "0917 123 4567",
+  gcashNote: "Scan the QR with GCash and send the exact amount, then upload your receipt below. You pay the exact court rate — no booking fees.",
+  refPrefix: "CQ-",
+  colors:   { ink:"#12275C", teal:"#1E50C8", teald:"#1A44AD", lime:"#F26A21" },
+  // Optional background video for the hero. Leave "" for a clean gradient.
+  heroVideo: "https://i.imgur.com/QH4V83J.mp4",
+};
+/* ============ (no need to edit below this line) ============ */
+
+const DAYNAMES=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHFULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const COURTS=CONFIG.courts.map((n,i)=>({id:i+1,name:n}));
+const HOURS=[];for(let h=CONFIG.openHour;h<CONFIG.closeHour;h++)HOURS.push(h);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function priceFor(h,c){const id=c||(typeof sel!=="undefined"&&sel.court)||1;if(CONFIG.courtPrices&&CONFIG.courtPrices[id]!=null)return CONFIG.courtPrices[id];return (h>=CONFIG.price.peakStart&&h<=CONFIG.price.peakEnd)?CONFIG.price.peak:CONFIG.price.offPeak}
+function fmt(n){return CONFIG.currency+n.toLocaleString()}
+function hLabel(h){h=((h%24)+24)%24;const ap=h<12?"AM":"PM";let hh=h%12;if(hh===0)hh=12;return hh+":00 "+ap}
+function dateKey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+
+const today=new Date();today.setHours(0,0,0,0);
+// Rolling 7-day quick-pick strip. The month calendar can shift this window
+// to any future date, so all existing logic keeps working off `dates`.
+let dates=[];
+function buildDates(startDate){dates=[];for(let i=0;i<7;i++){const d=new Date(startDate);d.setDate(startDate.getDate()+i);dates.push(d);}}
+buildDates(today);
+
+let bookings=[
+  {ref:CONFIG.refPrefix+"4821",name:"Marco Reyes",court:1,dk:dateKey(today),hour:8,dur:1,price:priceFor(8,1),status:"Confirmed"},
+  {ref:CONFIG.refPrefix+"4822",name:"Bea Santos",court:(COURTS[1]?2:1),dk:dateKey(today),hour:18,dur:1,price:priceFor(18,(COURTS[1]?2:1)),status:"Confirmed"},
+  {ref:CONFIG.refPrefix+"4823",name:"Ana Lim",court:(COURTS[2]?3:1),dk:dateKey(today),hour:19,dur:1,price:priceFor(19,(COURTS[2]?3:1)),status:"Pending"},
+];
+const sel={dateIdx:0,court:1,start:null,end:null};
+let calYear=today.getFullYear(), calMonth=today.getMonth(); // for the month popover
+let calOpen=false;
+
+function totalFor(h,c,dur){let t=0;for(let i=0;i<dur;i++)t+=priceFor(h+i,c);return t}
+function freeRunEnd(dk,court,s){let e=s+1;while(e<CONFIG.closeHour&&!isBooked(dk,court,e))e++;return e}
+
+function applyConfig(){
+  const r=document.documentElement.style;
+  r.setProperty("--ink",CONFIG.colors.ink);r.setProperty("--teal",CONFIG.colors.teal);
+  r.setProperty("--teald",CONFIG.colors.teald);r.setProperty("--lime",CONFIG.colors.lime);
+  document.title=CONFIG.venue+" — Book a Court";
+  document.getElementById("brandVenue").textContent=CONFIG.venue;
+  document.getElementById("heroTitle").textContent=CONFIG.tagline;
+  document.getElementById("heroSub").textContent=CONFIG.subtag;
+  const hrs=hLabel(CONFIG.openHour)+" – "+hLabel(CONFIG.closeHour);
+  const icPin='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>';
+  const icClock='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>';
+  const icBall='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18M5.2 6.5c4.2 2.6 9.4 2.6 13.6 0M5.2 17.5c4.2-2.6 9.4-2.6 13.6 0"/></svg>';
+  document.getElementById("metaRow").innerHTML=
+    `<span>${icPin} ${CONFIG.location}</span><span>${icClock} Open ${hrs}</span><span>${icBall} ${COURTS.length} court${COURTS.length>1?'s':''}</span>`;
+  document.getElementById("gcashNote").textContent=CONFIG.gcashNote;
+  document.getElementById("gcashLine").textContent="GCash: "+CONFIG.gcashName+"  ·  "+CONFIG.gcashNumber;
+  document.getElementById("payOpts").innerHTML=CONFIG.payMethods.map(m=>`<span class="payopt">${m}</span>`).join("");
+  document.getElementById("footLine").innerHTML=`${CONFIG.venue} &nbsp;·&nbsp; online court booking${CONFIG.brand?` &nbsp;·&nbsp; built by <b>${CONFIG.brand}</b>`:''}`;
+  // Hero background video (optional, degrades to gradient if missing/blocked)
+  const v=document.getElementById("bg-video");
+  if(CONFIG.heroVideo){v.src=CONFIG.heroVideo;v.onerror=function(){v.style.display="none"};}
+  else{v.style.display="none";}
+}
+
+function isBooked(dk,court,h){
+  if(bookings.some(b=>b.dk===dk&&b.court===court&&h>=b.hour&&h<b.hour+(b.dur||1)&&b.status!=="Cancelled"))return true;
+  const rnd=mulberry32((dk.split("-").reduce((a,c)=>a+parseInt(c),0))*97+court*31+h);
+  return rnd()<0.16;
+}
+function renderDates(){
+  document.getElementById("dateRow").innerHTML=
+    dates.map((d,i)=>`<div class="chip ${i===sel.dateIdx?'on':''}" onclick="pickDate(${i})">${DAYNAMES[d.getDay()]}<small>${MONTHS[d.getMonth()]} ${d.getDate()}</small></div>`).join("")
+    +`<button class="calbtn" onclick="toggleCal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4" stroke-linecap="round"/></svg>${calOpen?'Close calendar':'More dates'}</button>`;
+}
+function toggleCal(){calOpen=!calOpen;const p=document.getElementById("calPop");p.classList.toggle("hide",!calOpen);if(calOpen){const sd=dates[sel.dateIdx];calYear=sd.getFullYear();calMonth=sd.getMonth();renderCal();}renderDates();}
+function calShift(delta){calMonth+=delta;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderCal();}
+function renderCal(){
+  const first=new Date(calYear,calMonth,1);const startDow=first.getDay();
+  const daysIn=new Date(calYear,calMonth+1,0).getDate();
+  const thisMonthStart=new Date(today.getFullYear(),today.getMonth(),1);
+  const canPrev=new Date(calYear,calMonth,1)>thisMonthStart;
+  let html=`<div class="calhead"><button class="calnav" ${canPrev?'':'disabled'} onclick="calShift(-1)">‹</button><b>${MONTHFULL[calMonth]} ${calYear}</b><button class="calnav" onclick="calShift(1)">›</button></div>`;
+  html+=`<div class="calgrid">`+DAYNAMES.map(d=>`<div class="caldow">${d[0]}</div>`).join("");
+  for(let i=0;i<startDow;i++)html+=`<div class="calday muted"></div>`;
+  const selDate=dates[sel.dateIdx];
+  for(let day=1;day<=daysIn;day++){
+    const d=new Date(calYear,calMonth,day);
+    let cls="calday";
+    if(d<today)cls+=" past";
+    if(sameDay(d,today))cls+=" today";
+    if(sameDay(d,selDate))cls+=" sel";
+    html+=`<div class="${cls}" ${d<today?'':`onclick="pickCalDate(${calYear},${calMonth},${day})"`}>${day}</div>`;
+  }
+  html+=`</div>`;
+  document.getElementById("calPop").innerHTML=html;
+}
+function pickCalDate(y,m,day){
+  const chosen=new Date(y,m,day);chosen.setHours(0,0,0,0);
+  buildDates(chosen);           // shift the 7-day window to start at the chosen date
+  sel.dateIdx=0;sel.start=null;sel.end=null;
+  calOpen=false;document.getElementById("calPop").classList.add("hide");
+  renderDates();renderSlots();updateContinue();
+  toast("Jumped to "+DAYNAMES[chosen.getDay()]+" "+MONTHS[chosen.getMonth()]+" "+chosen.getDate());
+}
+function renderCourts(){document.getElementById("courtRow").innerHTML=COURTS.map(c=>`<div class="chip ${c.id===sel.court?'on':''}" onclick="pickCourt(${c.id})">${c.name}</div>`).join("");}
+function renderSlots(){
+  const dk=dateKey(dates[sel.dateIdx]);
+  document.getElementById("slotGrid").innerHTML=HOURS.map(h=>{
+    if(isBooked(dk,sel.court,h))return `<div class="slot booked"><div class="t">${hLabel(h)}</div><div class="tag">Booked</div></div>`;
+    let cls="slot", body=fmt(priceFor(h,sel.court));
+    if(sel.start!==null){
+      if(sel.end===null){
+        if(h===sel.start){cls+=" on";}
+        else if(h>sel.start&&h<freeRunEnd(dk,sel.court,sel.start)){cls+=" reach";body="&rarr; "+fmt(totalFor(sel.start,sel.court,h-sel.start+1));}
+      }else if(h>=sel.start&&h<sel.end){cls+=" on";}
+    }
+    return `<div class="${cls}" onclick="pickSlot(${h})"><div class="t">${hLabel(h)}</div><div class="p">${body}</div></div>`;
+  }).join("");
+}
+function pickDate(i){sel.dateIdx=i;sel.start=null;sel.end=null;renderDates();renderSlots();updateContinue();}
+function pickCourt(c){sel.court=c;sel.start=null;sel.end=null;renderCourts();renderSlots();updateContinue();}
+function pickSlot(h){
+  const dk=dateKey(dates[sel.dateIdx]);
+  if(sel.start!==null&&sel.end===null&&h>=sel.start&&h<freeRunEnd(dk,sel.court,sel.start)){sel.end=h+1;}
+  else{sel.start=h;sel.end=null;}
+  renderSlots();updateContinue();
+}
+function updateContinue(){
+  const ok=sel.start!==null&&sel.end!==null;
+  document.getElementById("toStep2").disabled=!ok;
+  let msg;
+  if(sel.start===null)msg="Tap your start time to begin.";
+  else if(sel.end===null)msg="Start: "+hLabel(sel.start)+" — now tap your end time (tap the same slot for 1 hour).";
+  else{const dur=sel.end-sel.start;msg="Nice — "+COURTS[sel.court-1].name+", "+hLabel(sel.start)+"–"+hLabel(sel.end)+" ("+dur+" hr"+(dur>1?"s":"")+", "+fmt(totalFor(sel.start,sel.court,dur))+").";}
+  document.getElementById("slotHint").textContent=msg;
+}
+function summaryHTML(){const d=dates[sel.dateIdx];const dur=sel.end-sel.start;return `<div class="sr"><span>Venue</span><b>${CONFIG.venue}</b></div><div class="sr"><span>Court</span><b>${COURTS[sel.court-1].name}</b></div><div class="sr"><span>Date</span><b>${DAYNAMES[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}</b></div><div class="sr"><span>Time</span><b>${hLabel(sel.start)} – ${hLabel(sel.end)}</b></div><div class="sr"><span>Duration</span><b>${dur} hour${dur>1?"s":""}</b></div><div class="sr tot"><span>Total</span><b>${fmt(totalFor(sel.start,sel.court,dur))}</b></div>`;}
+function setStepUI(n){[1,2,3,4].forEach(i=>{document.getElementById("screen"+i).classList.toggle("hide",i!==n);document.getElementById("st"+i).className="step"+(i===n?" active":(i<n?" done":""));});window.scrollTo({top:0,behavior:"smooth"});}
+function goStep(n){if(n===2)document.getElementById("summary2").innerHTML=summaryHTML();if(n===3){document.getElementById("summary3").innerHTML=summaryHTML();document.getElementById("payAmt").textContent=fmt(totalFor(sel.start,sel.court,sel.end-sel.start));buildQR();validatePay();}setStepUI(n);}
+function buildQR(){const q=document.getElementById("qr");const N=21;const rnd=mulberry32(777);let cells="";for(let r=0;r<N;r++)for(let c=0;c<N;c++){const inF=(r<7&&c<7)||(r<7&&c>=14)||(r>=14&&c<7);let on;if(inF){const rr=r<7?r:r-14,cc=c<7?c:c-14;on=(rr===0||rr===6||cc===0||cc===6||(rr>=2&&rr<=4&&cc>=2&&cc<=4));}else{on=rnd()<0.5;}cells+=`<i style="${on?'':'background:transparent'}"></i>`;}q.innerHTML=cells;}
+
+/* ---- Proof of payment upload (from the EBoss production app) ---- */
+let proofOK=false;
+function handleProof(input){
+  const file=input.files[0];const preview=document.getElementById("proofPreview");const status=document.getElementById("fileStatus");
+  proofOK=false;
+  if(!file){status.textContent="";preview.style.display="none";validatePay();return;}
+  const validTypes=["image/jpeg","image/png","image/gif","image/webp","image/heic"];
+  if(!validTypes.includes(file.type)){status.textContent="Unsupported file — upload a JPEG, PNG, GIF, WEBP or HEIC image.";status.style.color="var(--bad)";input.value="";preview.style.display="none";}
+  else if(file.size>5*1024*1024){status.textContent="File too large (max 5MB).";status.style.color="var(--bad)";input.value="";preview.style.display="none";}
+  else{status.textContent="Attached: "+file.name;status.style.color="var(--teal)";preview.src=URL.createObjectURL(file);preview.style.display="inline-block";proofOK=true;}
+  validatePay();
+}
+function validatePay(){
+  const ref=document.getElementById("payRef").value.trim();
+  const terms=document.getElementById("termsCheck").checked;
+  document.getElementById("confirmBtn").disabled=!(ref.length>=4&&proofOK&&terms);
+}
+function confirmBooking(){
+  const ref=CONFIG.refPrefix+Math.floor(4900+Math.random()*99);
+  const name=document.getElementById("fName").value.trim()||"Demo Player";
+  const email=document.getElementById("fEmail").value.trim()||"demo@email.com";
+  const d=dates[sel.dateIdx];
+  bookings.unshift({ref,name,court:sel.court,dk:dateKey(d),hour:sel.start,dur:sel.end-sel.start,price:totalFor(sel.start,sel.court,sel.end-sel.start),status:"Pending"});
+  document.getElementById("confEmail").textContent=email;
+  document.getElementById("confRef").textContent="Ref "+ref;
+  document.getElementById("bookQR").src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="+encodeURIComponent(CONFIG.venue.toUpperCase()+" CHECK-IN | "+ref+" | "+COURTS[sel.court-1].name+" | "+DAYNAMES[d.getDay()]+" "+MONTHS[d.getMonth()]+" "+d.getDate()+" | "+hLabel(sel.start)+"-"+hLabel(sel.end));
+  document.getElementById("summary4").innerHTML=summaryHTML();
+  setStepUI(4);renderSlots();renderOwner();
+  toast("Booking created — check the Owner Dashboard!");
+}
+function resetFlow(){
+  sel.start=null;sel.end=null;
+  ["fName","fEmail","fPhone","payRef"].forEach(i=>document.getElementById(i).value="");
+  document.getElementById("termsCheck").checked=false;
+  document.getElementById("proofInput").value="";
+  document.getElementById("proofPreview").style.display="none";
+  document.getElementById("fileStatus").textContent="";
+  proofOK=false;
+  renderSlots();updateContinue();setStepUI(1);
+}
+function renderOwner(){
+  const tk=dateKey(today);const todays=bookings.filter(b=>b.dk===tk);
+  const income=todays.filter(b=>b.status==="Confirmed").reduce((a,b)=>a+b.price,0);
+  const pending=bookings.filter(b=>b.status==="Pending").length;
+  const week=bookings.filter(b=>b.status==="Confirmed").reduce((a,b)=>a+b.price,0)+4200;
+  document.getElementById("stBookings").textContent=todays.length;
+  document.getElementById("stIncome").textContent=fmt(income);
+  document.getElementById("stPending").textContent=pending;
+  document.getElementById("stWeek").textContent=fmt(week);
+  const sorted=[...bookings].sort((a,b)=>(a.status==="Pending"?-1:0)-(b.status==="Pending"?-1:0));
+  document.getElementById("ownerRows").innerHTML=sorted.map(b=>{
+    const d=b.dk.split("-");const dd=new Date(d[0],d[1]-1,d[2]);
+    const cls=b.status==="Confirmed"?"conf":(b.status==="Cancelled"?"canc":"pend");
+    const rsBtn=`<button class="mini alt" onclick="openReschedule('${b.ref}')">Reschedule</button>`;
+    let act;
+    if(b.status==="Cancelled"){act=`<span class="subtle">—</span>`;}
+    else if(b.status==="Pending"){act=`<button class="mini ok" onclick="setStatus('${b.ref}','Confirmed')">Confirm</button>`+rsBtn+`<button class="mini no" onclick="setStatus('${b.ref}','Cancelled')">Cancel</button>`;}
+    else{act=rsBtn+(b.manual?`<button class="mini no" onclick="setStatus('${b.ref}','Cancelled')">Remove</button>`:``);}
+    return `<tr><td><b>${b.name}</b><br><span class="subtle">${b.ref}</span></td><td>${COURTS[b.court-1]?COURTS[b.court-1].name:'Court'}</td><td>${DAYNAMES[dd.getDay()]} ${MONTHS[dd.getMonth()]} ${dd.getDate()}<br><span class="subtle">${hLabel(b.hour)}–${hLabel(b.hour+(b.dur||1))}</span></td><td><b>${fmt(b.price)}</b></td><td><span class="pill ${cls}">${b.status}</span></td><td>${act}</td></tr>`;
+  }).join("");
+}
+function renderManual(){
+  document.getElementById("mCourt").innerHTML=COURTS.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("mDate").innerHTML=dates.map((d,i)=>`<option value="${i}">${DAYNAMES[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}</option>`).join("");
+  let hrs="";for(let h=CONFIG.openHour;h<CONFIG.closeHour;h++){hrs+=`<option value="${h}">${hLabel(h)}</option>`;}
+  document.getElementById("mStart").innerHTML=hrs;document.getElementById("mStart").value=CONFIG.openHour;
+  refreshManualEnd();
+}
+function refreshManualEnd(){
+  const c=+document.getElementById("mCourt").value,di=+document.getElementById("mDate").value,s=+document.getElementById("mStart").value,dk=dateKey(dates[di]);
+  const maxEnd=freeRunEnd(dk,c,s);
+  let opts="";
+  for(let e=s+1;e<=maxEnd;e++){const dur=e-s;opts+=`<option value="${e}">${hLabel(e)} · ${dur} hr${dur>1?"s":""}</option>`;}
+  if(opts==="")opts=`<option value="${s+1}">${hLabel(s+1)} · 1 hr</option>`;
+  document.getElementById("mEnd").innerHTML=opts;
+}
+function addManual(){
+  const c=+document.getElementById("mCourt").value,di=+document.getElementById("mDate").value,s=+document.getElementById("mStart").value,e=+document.getElementById("mEnd").value,t=document.getElementById("mType").value;
+  const dk=dateKey(dates[di]),dur=e-s;
+  if(!(dur>=1)){toast("End time must be after the start time.");return;}
+  if(!slotFree(dk,c,s,dur,null)){toast("That block overlaps an existing booking — pick another time.");return;}
+  const label=t==="block"?"Blocked — maintenance":(t==="vip"?"VIP session":"Walk-in");
+  bookings.unshift({ref:CONFIG.refPrefix+"M"+Math.floor(100+Math.random()*899),name:label,court:c,dk,hour:s,dur,price:t==="block"?0:totalFor(s,c,dur),status:"Confirmed",manual:true});
+  renderOwner();renderSlots();
+  toast(t==="block"?`Blocked ${hLabel(s)}–${hLabel(e)} — gone from the public calendar.`:`Added ${hLabel(s)}–${hLabel(e)} (${dur} hr${dur>1?"s":""}) — public calendar updated instantly.`);
+}
+function setStatus(ref,st){const b=bookings.find(x=>x.ref===ref);if(b)b.status=st;renderOwner();renderSlots();if(!document.getElementById("viewMatrix").classList.contains("hide"))renderMatrix();toast(st==="Confirmed"?"Confirmed — today's income updated ✓":"Booking cancelled");}
+function setView(v){
+  const views={cust:"viewCust",owner:"viewOwner",matrix:"viewMatrix"};
+  Object.keys(views).forEach(k=>document.getElementById(views[k]).classList.toggle("hide",k!==v));
+  ["Cust","Owner","Matrix"].forEach(t=>document.getElementById("tab"+t).classList.toggle("on",("tab"+t)==="tab"+v.charAt(0).toUpperCase()+v.slice(1)));
+  if(v==="owner")renderOwner();
+  if(v==="matrix"){renderMatrixDates();renderMatrix();}
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---- Court Matrix (owner schedule board) ---- */
+let matIdx=0;
+function bookingAt(dk,court,h){return bookings.find(b=>b.dk===dk&&b.court===court&&h>=b.hour&&h<b.hour+(b.dur||1)&&b.status!=="Cancelled")||null;}
+function renderMatrixDates(){
+  if(matIdx>dates.length-1)matIdx=0;
+  document.getElementById("matDateRow").innerHTML=
+    dates.map((d,i)=>`<div class="chip ${i===matIdx?'on':''}" onclick="pickMatDate(${i})">${DAYNAMES[d.getDay()]}<small>${MONTHS[d.getMonth()]} ${d.getDate()}</small></div>`).join("");
+}
+function pickMatDate(i){matIdx=i;renderMatrixDates();renderMatrix();}
+function renderMatrix(){
+  const dk=dateKey(dates[matIdx]);
+  const g=document.getElementById("matGrid");
+  g.style.gridTemplateColumns=`88px repeat(${COURTS.length},minmax(84px,1fr))`;
+  let html=`<div class="mathead">Time</div>`+COURTS.map(c=>`<div class="mathead">${c.name}</div>`).join("");
+  for(const h of HOURS){
+    html+=`<div class="mattime">${hLabel(h)}</div>`;
+    for(const c of COURTS){
+      const b=bookingAt(dk,c.id,h);
+      if(b){
+        if(b.status==="Pending"){html+=`<div class="matcell pend" title="${b.name} · ${b.ref}">Pending</div>`;}
+        else if(b.manual&&/Blocked/.test(b.name)){html+=`<div class="matcell block" title="Maintenance block">Blocked</div>`;}
+        else{const lbl=b.manual?b.name:b.name.split(" ")[0];html+=`<div class="matcell busy" title="${b.name} · ${b.ref}">${lbl}</div>`;}
+      }else if(isBooked(dk,c.id,h)){
+        html+=`<div class="matcell busy" title="Booked">Booked</div>`;
+      }else{
+        html+=`<div class="matcell free" title="Open — tap to add a walk-in" onclick="quickBookMatrix(${c.id},${h})">${fmt(priceFor(h,c.id))}</div>`;
+      }
+    }
+  }
+  g.innerHTML=html;
+}
+function quickBookMatrix(court,h){
+  const dk=dateKey(dates[matIdx]);
+  if(!slotFree(dk,court,h,1,null)){toast("That slot was just taken — try another.");renderMatrix();return;}
+  bookings.unshift({ref:CONFIG.refPrefix+"W"+Math.floor(100+Math.random()*899),name:"Walk-in",court,dk,hour:h,dur:1,price:totalFor(h,court,1),status:"Confirmed",manual:true});
+  renderMatrix();renderOwner();renderSlots();
+  toast(`Walk-in added — ${COURTS[court-1].name}, ${hLabel(h)}–${hLabel(h+1)}. Updated everywhere.`);
+}
+let toastT;function toast(msg){const t=document.getElementById("toast");t.innerHTML='<span class="d">●</span> '+msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600);}
+
+/* ---- Reschedule (Owner Dashboard) ---- */
+let rsRef=null;
+function slotFree(dk,court,h,dur,ignoreRef){
+  for(let i=0;i<dur;i++){
+    const hh=h+i;
+    if(hh>=CONFIG.closeHour)return false;
+    if(bookings.some(b=>b.ref!==ignoreRef&&b.dk===dk&&b.court===court&&hh>=b.hour&&hh<b.hour+(b.dur||1)&&b.status!=="Cancelled"))return false;
+    const rnd=mulberry32((dk.split("-").reduce((a,c)=>a+parseInt(c),0))*97+court*31+hh);
+    if(rnd()<0.16)return false;
+  }
+  return true;
+}
+function openReschedule(ref){
+  const b=bookings.find(x=>x.ref===ref);if(!b||b.status==="Cancelled")return;
+  rsRef=ref;const dur=b.dur||1;
+  document.getElementById("rsWho").textContent=b.name+"  ·  "+b.ref;
+  const cd=b.dk.split("-");const cdd=new Date(cd[0],cd[1]-1,cd[2]);
+  document.getElementById("rsCurrent").innerHTML="<span>Currently:</span> <b>"+(COURTS[b.court-1]?COURTS[b.court-1].name:'Court')+"</b>, "+DAYNAMES[cdd.getDay()]+" "+MONTHS[cdd.getMonth()]+" "+cdd.getDate()+", <b>"+hLabel(b.hour)+"–"+hLabel(b.hour+dur)+"</b> ("+dur+" hr"+(dur>1?"s":"")+")";
+  let di=dates.findIndex(d=>dateKey(d)===b.dk);if(di<0)di=0;
+  document.getElementById("rsDate").innerHTML=dates.map((d,i)=>`<option value="${i}">${DAYNAMES[d.getDay()]} ${MONTHS[d.getMonth()]} ${d.getDate()}</option>`).join("");
+  document.getElementById("rsDate").value=di;
+  document.getElementById("rsCourt").innerHTML=COURTS.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  document.getElementById("rsCourt").value=b.court;
+  rsRefresh(true);
+  document.getElementById("rsBackdrop").classList.remove("hide");
+}
+function closeReschedule(){document.getElementById("rsBackdrop").classList.add("hide");rsRef=null;}
+function rsRefresh(initial){
+  const b=bookings.find(x=>x.ref===rsRef);if(!b)return;const dur=b.dur||1;
+  const di=+document.getElementById("rsDate").value,court=+document.getElementById("rsCourt").value,dk=dateKey(dates[di]);
+  const prev=document.getElementById("rsHour").value;
+  let opts="",firstFree=null;
+  for(let h=CONFIG.openHour;h<=CONFIG.closeHour-dur;h++){
+    const cur=(dk===b.dk&&court===b.court&&h===b.hour);
+    if(cur||slotFree(dk,court,h,dur,rsRef)){if(firstFree===null)firstFree=h;opts+=`<option value="${h}">${hLabel(h)} – ${hLabel(h+dur)}</option>`;}
+  }
+  const s=document.getElementById("rsHour");
+  if(opts===""){s.innerHTML=`<option value="">No open ${dur}-hr slot on this day/court</option>`;s.disabled=true;document.getElementById("rsSave").disabled=true;}
+  else{
+    s.disabled=false;document.getElementById("rsSave").disabled=false;s.innerHTML=opts;
+    let want=null;
+    if(initial&&dk===b.dk&&court===b.court)want=String(b.hour);
+    else if(prev&&[...s.options].some(o=>o.value===prev))want=prev;
+    s.value=(want!=null&&[...s.options].some(o=>o.value===want))?want:String(firstFree);
+  }
+  rsPreview();
+}
+function rsPreview(){
+  const b=bookings.find(x=>x.ref===rsRef);if(!b)return;const dur=b.dur||1;
+  const note=document.getElementById("rsNote");const hv=document.getElementById("rsHour").value;
+  if(hv===""){note.className="rs-note bad";note.textContent="Pick a different date or court — nothing open here.";return;}
+  const di=+document.getElementById("rsDate").value,court=+document.getElementById("rsCourt").value,h=+hv,dk=dateKey(dates[di]),d=dates[di];
+  const newPrice=b.price===0?0:totalFor(h,court,dur);
+  if(dk===b.dk&&court===b.court&&h===b.hour){note.className="rs-note";note.textContent="That's the current slot. Change date, court or time to move it.";return;}
+  note.className="rs-note ok";
+  note.innerHTML="Move to <b>"+COURTS[court-1].name+"</b>, "+DAYNAMES[d.getDay()]+" "+MONTHS[d.getMonth()]+" "+d.getDate()+", <b>"+hLabel(h)+"–"+hLabel(h+dur)+"</b>"+(newPrice!==b.price?" · new total <b>"+fmt(newPrice)+"</b> (was "+fmt(b.price)+")":(newPrice?" · <b>"+fmt(newPrice)+"</b>":""));
+}
+function saveReschedule(){
+  const b=bookings.find(x=>x.ref===rsRef);if(!b){closeReschedule();return;}
+  const dur=b.dur||1;const hv=document.getElementById("rsHour").value;if(hv==="")return;
+  const di=+document.getElementById("rsDate").value,court=+document.getElementById("rsCourt").value,h=+hv,dk=dateKey(dates[di]);
+  if(dk===b.dk&&court===b.court&&h===b.hour){closeReschedule();return;}
+  if(!slotFree(dk,court,h,dur,rsRef)){toast("That slot was just taken — pick another.");rsRefresh();return;}
+  b.dk=dk;b.court=court;b.hour=h;b.price=b.price===0?0:totalFor(h,court,dur);
+  closeReschedule();renderOwner();renderSlots();
+  toast("Rescheduled — calendar updated, customer notified ✓");
+}
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeReschedule();});
+
+applyConfig();renderManual();renderDates();renderCourts();renderSlots();updateContinue();renderOwner();
+</script>
+</body>
+</html>
