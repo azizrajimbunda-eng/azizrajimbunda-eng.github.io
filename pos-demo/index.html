@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canteen POS — Live Demo</title>
+<meta name="description" content="Live demo of an offline-first canteen point-of-sale system with owner dashboard — by Raj.">
+<style>
+  :root{
+    --bg:#04231d; --panel:#063528; --panel2:#0a4a39; --tile:#075640; --line:#0f5f49;
+    --ink:#ecfdf5; --muted:#83c9ad; --accent:#f97316; --accentd:#ea580c;
+    --amber:#f59e0b; --danger:#fb7185; --good:#34d399; --qr:#38bdf8;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .demoflag{background:var(--accent);color:#3b1600;font-weight:800;font-size:11px;letter-spacing:.5px;text-align:center;padding:5px}
+  .howto{background:var(--panel);border-bottom:1px solid var(--line);color:#bfe0d0;font-size:13px;text-align:center;padding:9px 16px;line-height:1.5}
+  .howto b{color:#fff}
+  .howto .step{white-space:nowrap}
+  header{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;max-width:1080px;margin:0 auto;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+  .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#3b1600;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;flex:none}
+  .brand small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.2px}
+  .seg{display:flex;background:rgba(255,255,255,.06);border-radius:999px;padding:4px}
+  .seg button{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:13px;padding:8px 15px;border-radius:999px;cursor:pointer;transition:.15s}
+  .seg button.on{background:var(--accent);color:#3b1600}
+  .status{display:flex;align-items:center;gap:8px}
+  .sync{font-size:12px;font-weight:700;color:var(--amber);display:flex;align-items:center;gap:5px}
+  .sync.clean{color:var(--good)}
+  .sync .spin{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block}
+  .sync.syncing .spin{animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .netbtn{border:0;border-radius:999px;padding:7px 13px;font-size:12px;font-weight:800;cursor:pointer;transition:.15s}
+  .netbtn.online{background:var(--good);color:#04231d}
+  .netbtn.offline{background:var(--amber);color:#3b2600}
+  .wrap{max-width:1080px;margin:0 auto;padding:16px}
+  /* Counter layout */
+  .counter{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+  @media(max-width:860px){.counter{grid-template-columns:1fr}}
+  .catlabel{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:16px 2px 8px}
+  .catlabel:first-child{margin-top:0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+  .tile{background:var(--tile);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;text-align:left;transition:.12s;position:relative;min-height:92px;display:flex;flex-direction:column;justify-content:space-between}
+  .tile:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .tile:active{transform:scale(.98)}
+  .tile .nm{font-size:13.5px;font-weight:700;line-height:1.25}
+  .tile .pr{font-size:15px;font-weight:800;color:var(--accent);margin-top:6px}
+  .tile .st{font-size:11px;color:var(--muted);margin-top:2px}
+  .tile.low .st{color:var(--amber);font-weight:700}
+  .tile.out{opacity:.5;cursor:not-allowed}
+  .tile.out:hover{border-color:var(--line);transform:none}
+  .tile .oos{position:absolute;top:8px;right:8px;background:var(--danger);color:#3b0a12;font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px}
+  .tile .flash{position:absolute;inset:0;border-radius:14px;background:var(--accent);opacity:0;pointer-events:none}
+  .tile.added .flash{animation:fl .4s ease}
+  @keyframes fl{0%{opacity:.35}100%{opacity:0}}
+  /* Cart */
+  .cart{background:var(--panel);border:1px solid var(--line);border-radius:16px;position:sticky;top:76px;overflow:hidden}
+  .cart h3{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:14px 16px 0;display:flex;justify-content:space-between;align-items:center}
+  .cart h3 button{background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;font-weight:700}
+  .cart h3 button:hover{color:var(--danger)}
+  .clines{max-height:340px;overflow-y:auto;padding:8px 16px}
+  .cempty{padding:34px 16px;text-align:center;color:var(--muted);font-size:13.5px}
+  .cline{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .cline:last-child{border-bottom:0}
+  .cline .ci{flex:1;min-width:0}
+  .cline .cn{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cline .cs{font-size:11.5px;color:var(--muted)}
+  .stepper{display:flex;align-items:center;gap:2px}
+  .stepper button{width:26px;height:26px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:7px;font-size:15px;font-weight:800;cursor:pointer;line-height:1}
+  .stepper button:disabled{opacity:.4;cursor:not-allowed}
+  .stepper .q{width:26px;text-align:center;font-weight:800;font-size:14px}
+  .cx{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 4px}
+  .cx:hover{color:var(--danger)}
+  .cfoot{border-top:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px}
+  .cfoot .tl{flex:1}
+  .cfoot .tl small{display:block;font-size:11px;color:var(--muted)}
+  .cfoot .tl b{font-size:24px;font-weight:800}
+  .pay{background:var(--accent);color:#3b1600;border:0;border-radius:12px;padding:14px 26px;font-size:17px;font-weight:800;cursor:pointer;transition:.15s}
+  .pay:hover{background:var(--accentd)}
+  .pay:disabled{opacity:.4;cursor:not-allowed}
+  /* Payment modal */
+  .overlay{position:fixed;inset:0;background:rgba(2,20,16,.9);backdrop-filter:blur(4px);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:18px;width:100%;max-width:420px;box-shadow:var(--shadow);overflow:hidden}
+  .sheet-h{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .sheet-h .amt{font-size:13px;color:var(--muted)}
+  .sheet-h .amt b{display:block;font-size:26px;color:var(--ink)}
+  .sheet-x{border:0;background:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1}
+  .sheet-b{padding:20px}
+  .paychoice{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pc{border:1.5px solid var(--line);background:var(--tile);border-radius:14px;padding:22px 12px;cursor:pointer;text-align:center;transition:.15s;color:var(--ink)}
+  .pc:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .pc .pi{width:44px;height:44px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--panel2)}
+  .pc .pt{font-weight:800;font-size:16px}
+  .pc .pd{font-size:12px;color:var(--muted);margin-top:3px}
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+  .keys button{border:1px solid var(--line);background:var(--tile);color:var(--ink);border-radius:10px;padding:12px 0;font-size:15px;font-weight:800;cursor:pointer}
+  .keys button:hover{border-color:var(--accent)}
+  .keys button.wide{grid-column:span 3;background:var(--panel2)}
+  .cashin{width:100%;border:1.5px solid var(--line);background:var(--tile);color:var(--ink);border-radius:12px;padding:14px;font-size:22px;font-weight:800;text-align:center;font-family:inherit}
+  .cashin:focus{outline:none;border-color:var(--accent)}
+  .change{margin-top:14px;background:var(--panel2);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;font-size:15px}
+  .change b{font-size:22px;color:var(--good)}
+  .change.short b{color:var(--danger)}
+  .qrbox{text-align:center}
+  .qr{width:170px;height:170px;background:#fff;border-radius:14px;padding:12px;margin:0 auto 12px;display:grid;grid-template-columns:repeat(21,1fr);grid-template-rows:repeat(21,1fr)}
+  .qr i{background:#04231d}
+  .qrmeths{display:flex;gap:8px;justify-content:center;margin-bottom:6px}
+  .qrmeths span{border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12.5px;font-weight:700;color:var(--qr)}
+  .btnrow{display:flex;gap:10px;margin-top:18px}
+  .btn{flex:1;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:.15s}
+  .btn.primary{background:var(--accent);color:#3b1600}
+  .btn.primary:hover{background:var(--accentd)}
+  .btn.primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn.ghost{background:var(--panel2);color:var(--ink);flex:0 0 auto;padding:14px 20px}
+  .done{text-align:center;padding:8px 4px}
+  .donecheck{width:66px;height:66px;border-radius:50%;background:var(--good);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+  .donecheck svg{width:34px;height:34px}
+  .donerow{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .donerow:last-of-type{border-bottom:0}
+  .donerow b{font-weight:800}
+  .offnote{margin-top:12px;font-size:12px;color:var(--amber);background:rgba(245,158,11,.12);border-radius:10px;padding:9px 12px}
+  /* Owner + inventory */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px}
+  .stat .k{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .stat .v{font-size:24px;font-weight:800;margin-top:4px}
+  .stat .v.money{color:var(--accent)}
+  .sect{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+  .sect h3{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11px;letter-spacing:.4px;color:var(--muted);text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:13.5px}
+  tr:last-child td{border-bottom:0}
+  .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800}
+  .tag.cash{background:rgba(52,211,153,.16);color:var(--good)}
+  .tag.qrp{background:rgba(56,189,248,.16);color:var(--qr)}
+  .bestrow{display:flex;align-items:center;gap:12px;padding:8px 0}
+  .bestrow .rank{width:24px;height:24px;border-radius:7px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--muted);flex:none}
+  .bestrow .bn{flex:1;font-size:14px;font-weight:600}
+  .bestbar{height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;margin-top:4px}
+  .bestbar i{display:block;height:100%;background:var(--accent)}
+  .bestrow .bq{font-size:12.5px;color:var(--muted);white-space:nowrap}
+  .low{color:var(--amber);font-weight:700}
+  .zero{color:var(--danger);font-weight:700}
+  .invbtns{display:flex;gap:5px}
+  .invbtns button{width:28px;height:28px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:7px;font-weight:800;cursor:pointer}
+  .invbtns button:hover{border-color:var(--accent)}
+  .pill2{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px}
+  .pill2.ok{background:rgba(52,211,153,.16);color:var(--good)}
+  .pill2.lowp{background:rgba(245,158,11,.16);color:var(--amber)}
+  .pill2.outp{background:rgba(251,113,133,.16);color:var(--danger)}
+  .hidden{display:none!important}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:#02140f;border:1px solid var(--line);color:var(--ink);padding:13px 20px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:var(--shadow);transition:.35s;z-index:80;opacity:0;visibility:hidden}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible}
+  .toast .d{color:var(--accent)}
+  .intro{color:var(--muted);font-size:13.5px;margin:-4px 0 14px}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:22px 16px 40px}
+  footer b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="demoflag">LIVE DEMO — sample data, no real payment is taken</div>
+<div class="howto"><b>How to try it:</b> 1) tap products to build a sale · 2) <b>Pay</b> by cash or QR · 3) flip to <b>Offline</b> and keep selling · 4) check <b>Owner Dashboard</b> &amp; <b>Inventory</b></div>
+
+<header>
+  <div class="bar">
+    <div class="brand">
+      <span class="logo" id="logoInit">C</span>
+      <div><span id="storeName">CourtQ Canteen</span><small>Counter point-of-sale</small></div>
+    </div>
+    <div class="seg">
+      <button id="tabSell" class="on" onclick="setView('sell')">Sell</button>
+      <button id="tabOwner" onclick="setView('owner')">Owner Dashboard</button>
+      <button id="tabInv" onclick="setView('inv')">Inventory</button>
+    </div>
+    <div class="status">
+      <span class="sync clean hidden" id="syncBadge"></span>
+      <button class="netbtn online" id="netBtn" onclick="toggleOnline()">● Online</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== SELL / COUNTER ===================== -->
+<main id="viewSell" class="wrap">
+  <p class="intro">Tap products to build a sale, then <b>Pay</b> by cash or GCash/Maya QR. Try flipping to <b>Offline</b> in the top-right — sales still go through and queue to sync.</p>
+  <div class="counter">
+    <div id="productArea"></div>
+    <div class="cart">
+      <h3>Cart <button onclick="clearCart()" id="clearBtn" class="hidden">Clear</button></h3>
+      <div id="cartLines"></div>
+      <div class="cfoot" id="cartFoot">
+        <div class="tl"><small>Total</small><b id="cartTotal">₱0.00</b></div>
+        <button class="pay" id="payBtn" disabled onclick="openPay()">Pay</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ===================== OWNER DASHBOARD ===================== -->
+<main id="viewOwner" class="wrap hidden">
+  <p class="intro">Live sales from this counter — the numbers move as you sell. Cash and QR are split out, best sellers ranked, and low stock flagged.</p>
+  <div class="stats">
+    <div class="stat"><div class="k">Today's revenue</div><div class="v money" id="oRev">₱0.00</div></div>
+    <div class="stat"><div class="k">Sales</div><div class="v" id="oCount">0</div></div>
+    <div class="stat"><div class="k">Cash</div><div class="v" id="oCash">₱0.00</div></div>
+    <div class="stat"><div class="k">GCash / Maya</div><div class="v" id="oQr">₱0.00</div></div>
+  </div>
+  <div class="sect">
+    <h3>Best sellers today</h3>
+    <div id="bestSellers"></div>
+  </div>
+  <div class="sect">
+    <h3>Recent sales</h3>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Time</th><th>Items</th><th>Method</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody id="salesLog"></tbody>
+    </table></div>
+  </div>
+  <div class="sect">
+    <h3>Low stock — reorder soon</h3>
+    <div id="lowStock"></div>
+  </div>
+</main>
+
+<!-- ===================== INVENTORY ===================== -->
+<main id="viewInv" class="wrap hidden">
+  <p class="intro">Stock updates itself every time you sell. Tap − / + to adjust counts; low and out-of-stock items are flagged automatically.</p>
+  <div class="sect">
+    <h3>Inventory <span id="invSummary" style="font-weight:700;color:var(--muted);text-transform:none;letter-spacing:0"></span></h3>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Product</th><th>Category</th><th style="text-align:right">Price</th><th style="text-align:center">In stock</th><th style="text-align:center">Status</th><th style="text-align:center">Adjust</th></tr></thead>
+      <tbody id="invRows"></tbody>
+    </table></div>
+  </div>
+</main>
+
+<footer id="footLine"></footer>
+<div class="overlay hidden" id="payOverlay"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   CONFIG — re-skin the whole POS for a client here.
+   ================================================================ */
+const CONFIG = {
+  brand: "Raj",
+  store: "CourtQ Canteen",
+  currency: "₱",
+  gcashName: "COURTQ CANTEEN (demo)",
+  gcashNumber: "0917 123 4567",
+  payMethods: ["GCash", "Maya"],
+};
+/* ============ (no need to edit below this line) ============ */
+
+// Money is integer centavos everywhere; pesos only at the display edge.
+function fmt(c){const s=c<0?"-":"";c=Math.abs(c);const w=Math.floor(c/100),f=(c%100).toString().padStart(2,"0");return s+CONFIG.currency+w.toLocaleString("en-US")+"."+f;}
+function parsePesos(str){const cl=(str||"").replace(/[₱,\s]/g,"");if(cl===""||!/^\d*\.?\d{0,2}$/.test(cl))return null;const v=Number(cl);return(!isFinite(v)||v<0)?null:Math.round(v*100);}
+
+const CAT_ORDER=["water","drinks","snacks","accessories"];
+const CAT_LABEL={water:"Water",drinks:"Drinks",snacks:"Snacks",accessories:"Accessories"};
+
+// Sample menu (prices in centavos). One out-of-stock + a couple low-stock on purpose.
+let products=[
+  {id:"w1",name:"Bottled Water 500ml",cat:"water",price:1500,stock:60,reorder:12},
+  {id:"w2",name:"Mineral Water 1L",cat:"water",price:3500,stock:20,reorder:6},
+  {id:"d1",name:"Coke Mismo",cat:"drinks",price:2000,stock:40,reorder:10},
+  {id:"d2",name:"Sprite Mismo",cat:"drinks",price:2000,stock:30,reorder:8},
+  {id:"d3",name:"Royal Mismo",cat:"drinks",price:2000,stock:24,reorder:6},
+  {id:"d4",name:"C2 Green Tea",cat:"drinks",price:2500,stock:5,reorder:6},
+  {id:"d5",name:"Gatorade Blue",cat:"drinks",price:4500,stock:18,reorder:6},
+  {id:"d6",name:"Cobra Energy",cat:"drinks",price:3000,stock:24,reorder:6},
+  {id:"s1",name:"Piattos",cat:"snacks",price:3000,stock:22,reorder:6},
+  {id:"s2",name:"Nova Multigrain",cat:"snacks",price:3000,stock:15,reorder:6},
+  {id:"s3",name:"Chippy BBQ",cat:"snacks",price:2000,stock:24,reorder:6},
+  {id:"s4",name:"Skyflakes Crackers",cat:"snacks",price:1200,stock:30,reorder:8},
+  {id:"a1",name:"Pickleball (single)",cat:"accessories",price:12000,stock:12,reorder:4},
+  {id:"a2",name:"Grip Tape",cat:"accessories",price:8000,stock:10,reorder:3},
+  {id:"a3",name:"Overgrip 3-pack",cat:"accessories",price:25000,stock:2,reorder:2},
+  {id:"a4",name:"Edge Guard Tape",cat:"accessories",price:12000,stock:0,reorder:3},
+];
+const prod=id=>products.find(p=>p.id===id);
+
+let cart={};        // productId -> qty
+let sales=[];       // {id,ts,total,method,tendered,change,lines:[{id,name,qty,price}],synced}
+let online=true;
+let unsynced=0;
+let saleSeq=1000;
+
+// Seed a few earlier sales today so the dashboard isn't empty.
+function seedSales(){
+  const now=Date.now();
+  const mk=(mins,method,items)=>{
+    const lines=items.map(([id,qty])=>{const p=prod(id);return{id,name:p.name,qty,price:p.price};});
+    const total=lines.reduce((a,l)=>a+l.price*l.qty,0);
+    sales.push({id:"S"+(saleSeq++),ts:now-mins*60000,total,method,tendered:method==="cash"?Math.ceil(total/10000)*10000:null,change:null,lines,synced:true});
+  };
+  mk(212,"cash",[["d1",2],["s1",1]]);
+  mk(168,"qr",[["d5",1],["s4",2]]);
+  mk(120,"cash",[["w1",3],["d3",1]]);
+  mk(74,"qr",[["a2",1]]);
+  mk(35,"cash",[["d1",1],["d2",1],["s3",1]]);
+  // apply seed sales to stock
+  sales.forEach(s=>s.lines.forEach(l=>{const p=prod(l.id);if(p)p.stock=Math.max(0,p.stock-l.qty);}));
+}
+
+/* ---------------- Counter / product grid ---------------- */
+function renderProducts(){
+  const area=document.getElementById("productArea");
+  let html="";
+  CAT_ORDER.forEach(cat=>{
+    const items=products.filter(p=>p.cat===cat);
+    if(!items.length)return;
+    html+=`<div class="catlabel">${CAT_LABEL[cat]||cat}</div><div class="grid">`;
+    items.forEach(p=>{
+      const out=p.stock<=0, low=!out&&p.stock<=p.reorder;
+      html+=`<button class="tile ${out?'out':''} ${low?'low':''}" ${out?'disabled':`onclick="addToCart('${p.id}')"`} id="tile-${p.id}">
+        ${out?'<span class="oos">Out</span>':''}
+        <div class="nm">${p.name}</div>
+        <div><div class="pr">${fmt(p.price)}</div><div class="st">${out?'Out of stock':(low?'Low · '+p.stock+' left':p.stock+' in stock')}</div></div>
+        <span class="flash"></span>
+      </button>`;
+    });
+    html+=`</div>`;
+  });
+  area.innerHTML=html;
+}
+function addToCart(id){
+  const p=prod(id);if(!p)return;
+  const inCart=cart[id]||0;
+  if(inCart>=p.stock){toast("Only "+p.stock+" "+p.name+" in stock.");return;}
+  cart[id]=inCart+1;
+  const t=document.getElementById("tile-"+id);
+  if(t){t.classList.remove("added");void t.offsetWidth;t.classList.add("added");}
+  renderCart();
+}
+function setQty(id,q){
+  const p=prod(id);if(!p)return;
+  if(q<=0){delete cart[id];}
+  else if(q>p.stock){cart[id]=p.stock;toast("Only "+p.stock+" in stock.");}
+  else cart[id]=q;
+  renderCart();
+}
+function removeLine(id){delete cart[id];renderCart();}
+function clearCart(){cart={};renderCart();}
+function cartLines(){return Object.keys(cart).map(id=>{const p=prod(id);return{id,name:p.name,qty:cart[id],price:p.price};});}
+function cartTotal(){return cartLines().reduce((a,l)=>a+l.price*l.qty,0);}
+function cartCount(){return cartLines().reduce((a,l)=>a+l.qty,0);}
+function renderCart(){
+  const lines=cartLines();
+  const box=document.getElementById("cartLines");
+  document.getElementById("clearBtn").classList.toggle("hidden",lines.length===0);
+  if(!lines.length){box.innerHTML=`<div class="cempty">Cart empty · tap a product to start a sale</div>`;}
+  else{
+    box.innerHTML=`<div class="clines">`+lines.map(l=>{
+      const p=prod(l.id),atMax=l.qty>=p.stock;
+      return `<div class="cline">
+        <div class="ci"><div class="cn">${l.name}</div><div class="cs">${fmt(l.price)} · <b>${fmt(l.price*l.qty)}</b></div></div>
+        <div class="stepper">
+          <button onclick="setQty('${l.id}',${l.qty-1})">−</button>
+          <span class="q">${l.qty}</span>
+          <button onclick="setQty('${l.id}',${l.qty+1})" ${atMax?'disabled':''}>+</button>
+        </div>
+        <button class="cx" title="Remove" onclick="removeLine('${l.id}')">×</button>
+      </div>`;
+    }).join("")+`</div>`;
+  }
+  document.getElementById("cartTotal").textContent=fmt(cartTotal());
+  document.getElementById("payBtn").disabled=lines.length===0;
+}
+
+/* ---------------- Payment ---------------- */
+let payStage="choose", cashTendered=null;
+function openPay(){payStage="choose";cashTendered=null;renderPay();document.getElementById("payOverlay").classList.remove("hidden");}
+function closePay(){document.getElementById("payOverlay").classList.add("hidden");}
+function renderPay(){
+  const total=cartTotal(), count=cartCount();
+  const ov=document.getElementById("payOverlay");
+  let body="";
+  if(payStage==="choose"){
+    body=`<div class="paychoice">
+      <button class="pc" onclick="payStage='cash';cashTendered=null;renderPay()">
+        <div class="pi"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></div>
+        <div class="pt">Cash</div><div class="pd">Enter amount, give change</div>
+      </button>
+      <button class="pc" onclick="payStage='qr';renderPay()">
+        <div class="pi"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M20 14v.01M20 20v.01M17 20v.01"/></svg></div>
+        <div class="pt">GCash / Maya</div><div class="pd">Scan QR to pay</div>
+      </button>
+    </div>`;
+  } else if(payStage==="cash"){
+    const change=cashTendered!==null?cashTendered-total:null;
+    const short=change!==null&&change<0;
+    const quick=[2000,5000,10000,20000,50000,100000];
+    body=`<input class="cashin" id="cashIn" inputmode="numeric" placeholder="Amount received" value="${cashTendered!==null?(cashTendered/100).toFixed(2):''}" oninput="onCashInput(this.value)">
+      <div class="keys">
+        ${quick.map(c=>`<button onclick="setCash(${c})">${fmt(c)}</button>`).join("")}
+        <button class="wide" onclick="setCash(${total})">Exact · ${fmt(total)}</button>
+      </div>
+      ${cashTendered!==null?`<div class="change ${short?'short':''}"><span>${short?'Still short':'Change'}</span><b>${fmt(Math.abs(change))}</b></div>`:''}
+      <div class="btnrow">
+        <button class="btn ghost" onclick="payStage='choose';renderPay()">Back</button>
+        <button class="btn primary" ${cashTendered===null||short?'disabled':''} onclick="commitSale('cash')">Confirm sale</button>
+      </div>`;
+  } else if(payStage==="qr"){
+    body=`<div class="qrbox">
+        <div class="qr" id="payQr"></div>
+        <div class="qrmeths">${CONFIG.payMethods.map(m=>`<span>${m}</span>`).join("")}</div>
+        <div style="font-size:13px;color:var(--muted)">${CONFIG.gcashName} · ${CONFIG.gcashNumber}</div>
+      </div>
+      <div class="btnrow">
+        <button class="btn ghost" onclick="payStage='choose';renderPay()">Back</button>
+        <button class="btn primary" onclick="commitSale('qr')">Mark paid ✓</button>
+      </div>`;
+  } else if(payStage==="done"){
+    const s=sales[0];
+    body=`<div class="done">
+        <div class="donecheck"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#04231d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h2 style="font-size:20px;margin-bottom:12px">Sale complete</h2>
+        <div style="text-align:left">
+          <div class="donerow"><span>Items</span><b>${s.lines.reduce((a,l)=>a+l.qty,0)}</b></div>
+          <div class="donerow"><span>Total</span><b>${fmt(s.total)}</b></div>
+          <div class="donerow"><span>Method</span><b>${s.method==="cash"?"Cash":"GCash / Maya"}</b></div>
+          ${s.method==="cash"?`<div class="donerow"><span>Tendered</span><b>${fmt(s.tendered)}</b></div><div class="donerow"><span>Change</span><b style="color:var(--good)">${fmt(s.change)}</b></div>`:''}
+          <div class="donerow"><span>Receipt</span><b>#${s.id}</b></div>
+        </div>
+        ${!s.synced?`<div class="offnote">Saved on this device while offline — it'll sync automatically when you're back online.</div>`:''}
+        <div class="btnrow"><button class="btn primary" onclick="closePay()">New sale</button></div>
+      </div>`;
+  }
+  ov.innerHTML=`<div class="sheet">
+    <div class="sheet-h">
+      <div class="amt">${payStage==="done"?"Receipt":"Amount due"}${payStage==="done"?"":`<b>${fmt(total)}</b>`}</div>
+      ${payStage!=="done"?`<button class="sheet-x" onclick="closePay()">×</button>`:''}
+    </div>
+    <div class="sheet-b">${body}</div>
+  </div>`;
+  if(payStage==="qr")buildQR();
+  if(payStage==="cash"){const ci=document.getElementById("cashIn");if(ci){ci.focus();ci.setSelectionRange(ci.value.length,ci.value.length);}}
+}
+function onCashInput(v){const c=parsePesos(v);cashTendered=(v.trim()===""?null:(c===null?cashTendered:c));renderPayKeepFocus();}
+function setCash(c){cashTendered=c;renderPay();}
+function renderPayKeepFocus(){
+  // update only the change line + confirm button without wiping the input (keeps caret)
+  const total=cartTotal();const change=cashTendered!==null?cashTendered-total:null;const short=change!==null&&change<0;
+  const sheet=document.querySelector("#payOverlay .sheet-b");if(!sheet)return;
+  let ch=sheet.querySelector(".change");
+  const keys=sheet.querySelector(".keys");
+  if(cashTendered!==null){
+    if(!ch){ch=document.createElement("div");ch.className="change";keys.after(ch);}
+    ch.className="change"+(short?" short":"");
+    ch.innerHTML=`<span>${short?'Still short':'Change'}</span><b>${fmt(Math.abs(change))}</b>`;
+  } else if(ch){ch.remove();}
+  const btn=sheet.querySelector(".btn.primary");if(btn)btn.disabled=(cashTendered===null||short);
+}
+function buildQR(){const q=document.getElementById("payQr");if(!q)return;const N=21,rnd=mulberry32(4242);let cells="";for(let r=0;r<N;r++)for(let c=0;c<N;c++){const inF=(r<7&&c<7)||(r<7&&c>=14)||(r>=14&&c<7);let on;if(inF){const rr=r<7?r:r-14,cc=c<7?c:c-14;on=(rr===0||rr===6||cc===0||cc===6||(rr>=2&&rr<=4&&cc>=2&&cc<=4));}else{on=rnd()<0.5;}cells+=`<i style="${on?'':'background:transparent'}"></i>`;}q.innerHTML=cells;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function commitSale(method){
+  const lines=cartLines();if(!lines.length)return;
+  const total=cartTotal();
+  const tendered=method==="cash"?cashTendered:null;
+  const change=method==="cash"?tendered-total:null;
+  // decrement stock
+  lines.forEach(l=>{const p=prod(l.id);if(p)p.stock=Math.max(0,p.stock-l.qty);});
+  const sale={id:"S"+(saleSeq++),ts:Date.now(),total,method,tendered,change,lines:lines.map(l=>({...l})),synced:online};
+  sales.unshift(sale);
+  if(!online){unsynced++;}
+  cart={};
+  renderProducts();renderCart();renderSync();
+  payStage="done";renderPay();
+  toast(online?"Sale recorded ✓":"Sale saved offline — will sync later");
+}
+
+/* ---------------- Owner dashboard ---------------- */
+function startOfToday(){const d=new Date();d.setHours(0,0,0,0);return d.getTime();}
+function renderOwner(){
+  const t0=startOfToday();
+  const today=sales.filter(s=>s.ts>=t0);
+  const rev=today.reduce((a,s)=>a+s.total,0);
+  const cash=today.filter(s=>s.method==="cash").reduce((a,s)=>a+s.total,0);
+  const qr=today.filter(s=>s.method==="qr").reduce((a,s)=>a+s.total,0);
+  document.getElementById("oRev").textContent=fmt(rev);
+  document.getElementById("oCount").textContent=today.length;
+  document.getElementById("oCash").textContent=fmt(cash);
+  document.getElementById("oQr").textContent=fmt(qr);
+  // best sellers
+  const tally={};
+  today.forEach(s=>s.lines.forEach(l=>{tally[l.name]=tally[l.name]||{qty:0,rev:0};tally[l.name].qty+=l.qty;tally[l.name].rev+=l.qty*l.price;}));
+  const best=Object.entries(tally).map(([name,v])=>({name,...v})).sort((a,b)=>b.qty-a.qty).slice(0,5);
+  const maxQ=best.length?best[0].qty:1;
+  document.getElementById("bestSellers").innerHTML=best.length?best.map((b,i)=>`
+    <div class="bestrow"><div class="rank">${i+1}</div>
+      <div class="bn">${b.name}<div class="bestbar"><i style="width:${Math.round(b.qty/maxQ*100)}%"></i></div></div>
+      <div class="bq">${b.qty} sold · ${fmt(b.rev)}</div></div>`).join(""):`<div class="cempty">No sales yet — make one on the Sell tab.</div>`;
+  // sales log
+  document.getElementById("salesLog").innerHTML=today.length?today.slice(0,12).map(s=>{
+    const items=s.lines.reduce((a,l)=>a+l.qty,0);
+    const names=s.lines.map(l=>l.qty+"× "+l.name).join(", ");
+    return `<tr><td>${clock(s.ts)}${s.synced?'':' <span class="low" title="Queued to sync">⟳</span>'}</td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${names}">${items} item${items>1?'s':''} · <span style="color:var(--muted)">${names}</span></td><td><span class="tag ${s.method==='cash'?'cash':'qrp'}">${s.method==="cash"?"Cash":"QR"}</span></td><td style="text-align:right;font-weight:800">${fmt(s.total)}</td></tr>`;
+  }).join(""):`<tr><td colspan="4" class="cempty" style="padding:20px">No sales yet today.</td></tr>`;
+  // low stock
+  const lows=products.filter(p=>p.stock<=p.reorder).sort((a,b)=>a.stock-b.stock);
+  document.getElementById("lowStock").innerHTML=lows.length?`<div style="overflow-x:auto"><table><thead><tr><th>Product</th><th style="text-align:center">In stock</th><th style="text-align:center">Reorder at</th></tr></thead><tbody>`+lows.map(p=>`<tr><td>${p.name}</td><td style="text-align:center" class="${p.stock<=0?'zero':'low'}">${p.stock}</td><td style="text-align:center;color:var(--muted)">${p.reorder}</td></tr>`).join("")+`</tbody></table></div>`:`<div class="cempty">Everything well stocked.</div>`;
+}
+function clock(ts){const d=new Date(ts);let h=d.getHours(),m=d.getMinutes().toString().padStart(2,"0");const ap=h<12?"AM":"PM";h=h%12;if(h===0)h=12;return h+":"+m+" "+ap;}
+
+/* ---------------- Inventory ---------------- */
+function renderInventory(){
+  const low=products.filter(p=>p.stock>0&&p.stock<=p.reorder).length;
+  const out=products.filter(p=>p.stock<=0).length;
+  document.getElementById("invSummary").textContent=`· ${products.length} items · ${low} low · ${out} out`;
+  document.getElementById("invRows").innerHTML=CAT_ORDER.flatMap(cat=>products.filter(p=>p.cat===cat)).map(p=>{
+    const out=p.stock<=0, low=!out&&p.stock<=p.reorder;
+    const pill=out?`<span class="pill2 outp">Out</span>`:(low?`<span class="pill2 lowp">Low</span>`:`<span class="pill2 ok">OK</span>`);
+    return `<tr>
+      <td style="font-weight:600">${p.name}</td>
+      <td style="color:var(--muted)">${CAT_LABEL[p.cat]||p.cat}</td>
+      <td style="text-align:right">${fmt(p.price)}</td>
+      <td style="text-align:center;font-weight:800" class="${out?'zero':(low?'low':'')}">${p.stock}</td>
+      <td style="text-align:center">${pill}</td>
+      <td><div class="invbtns" style="justify-content:center"><button onclick="adjustStock('${p.id}',-1)">−</button><button onclick="adjustStock('${p.id}',1)">+</button><button onclick="adjustStock('${p.id}',10)" title="Restock +10">+10</button></div></td>
+    </tr>`;
+  }).join("");
+}
+function adjustStock(id,delta){const p=prod(id);if(!p)return;p.stock=Math.max(0,p.stock+delta);renderInventory();renderProducts();toast(p.name+" → "+p.stock+" in stock");}
+
+/* ---------------- Online / offline + sync ---------------- */
+function renderSync(){
+  const badge=document.getElementById("syncBadge");
+  if(!online){
+    if(unsynced>0){badge.classList.remove("hidden","clean","syncing");badge.innerHTML=`<span class="spin"></span> ${unsynced} to sync`;}
+    else{badge.classList.add("hidden");}
+  }
+  else if(unsynced>0){badge.classList.remove("hidden","clean");badge.classList.add("syncing");badge.innerHTML=`<span class="spin"></span> Syncing ${unsynced}…`;}
+  else{badge.classList.remove("syncing");badge.classList.add("clean");badge.classList.remove("hidden");badge.innerHTML=`✓ All synced`;
+    setTimeout(()=>{if(online&&unsynced===0)badge.classList.add("hidden");},2200);}
+}
+function toggleOnline(){
+  online=!online;
+  const btn=document.getElementById("netBtn");
+  btn.className="netbtn "+(online?"online":"offline");
+  btn.textContent=(online?"● Online":"● Offline");
+  if(online&&unsynced>0){
+    renderSync(); // show "Syncing N…"
+    const n=unsynced;
+    setTimeout(()=>{unsynced=0;sales.forEach(s=>s.synced=true);renderSync();if(!document.getElementById("viewOwner").classList.contains("hidden"))renderOwner();toast(n+" offline sale"+(n>1?"s":"")+" synced to the cloud ✓");},1400);
+  } else {
+    renderSync();
+    toast(online?"Back online":"Offline mode — sales still work, they'll queue to sync");
+  }
+}
+
+/* ---------------- Views + boot ---------------- */
+function setView(v){
+  const map={sell:"viewSell",owner:"viewOwner",inv:"viewInv"};
+  Object.keys(map).forEach(k=>document.getElementById(map[k]).classList.toggle("hidden",k!==v));
+  document.getElementById("tabSell").classList.toggle("on",v==="sell");
+  document.getElementById("tabOwner").classList.toggle("on",v==="owner");
+  document.getElementById("tabInv").classList.toggle("on",v==="inv");
+  if(v==="owner")renderOwner();
+  if(v==="inv")renderInventory();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+let toastT;function toast(msg){const t=document.getElementById("toast");t.innerHTML='<span class="d">●</span> '+msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600);}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("payOverlay").classList.contains("hidden")&&payStage==="choose")closePay();});
+
+function applyConfig(){
+  document.getElementById("storeName").textContent=CONFIG.store;
+  document.getElementById("logoInit").textContent=(CONFIG.store||"C").trim()[0].toUpperCase();
+  document.title=CONFIG.store+" — Canteen POS";
+  document.getElementById("footLine").innerHTML=`${CONFIG.store} &nbsp;·&nbsp; offline-first canteen POS${CONFIG.brand?` &nbsp;·&nbsp; built by <b>${CONFIG.brand}</b>`:''}`;
+}
+applyConfig();seedSales();renderProducts();renderCart();
+</script>
+</body>
+</html>
