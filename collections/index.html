@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Treasury Collections System — Case Study · Raj</title>
+<meta name="description" content="How a regional treasury office went from a breaking spreadsheet to a self-hosted collections system — why we made it, how we made it, and what it changed.">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="From Spreadsheet to System — Treasury Collections Case Study">
+<meta property="og:description" content="A multi-user collections database for a regional treasury office: logins, audit trails, and official reports generated in seconds.">
+<meta property="og:image" content="https://azizrajimbunda-eng.github.io/collections/dashboard.png">
+<meta property="og:url" content="https://azizrajimbunda-eng.github.io/collections/">
+
+<style>
+  :root{
+    --bg:#08090c; --fg:#f4f5f7; --muted:#8b93a1;
+    --line:#1e222b; --card:#101319;
+    --accent:#5b8cff; --accent-2:#c14fff;
+    --max:800px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 24px; position:relative; z-index:1}
+  a{color:inherit}
+  .glow{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(600px 400px at 15% 0%, rgba(91,140,255,.16), transparent 70%),
+      radial-gradient(500px 400px at 85% 20%, rgba(193,79,255,.12), transparent 70%);
+  }
+  .topnav{padding:28px 0; font-size:14px}
+  .topnav a{color:var(--muted); text-decoration:none}
+  .topnav a:hover{color:var(--accent)}
+  header{padding:36px 0 20px}
+  .eyebrow{
+    display:inline-block; font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); border:1px solid rgba(91,140,255,.35); border-radius:999px;
+    padding:6px 14px; margin-bottom:22px;
+  }
+  h1{font-size:clamp(32px,6vw,52px); line-height:1.08; margin:0 0 18px; letter-spacing:-0.03em; font-weight:700}
+  h1 .grad{background:linear-gradient(100deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lede{font-size:19px; color:var(--muted); margin:0 0 26px}
+  .links{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:10px}
+  .btn{display:inline-flex; align-items:center; padding:11px 20px; border-radius:10px;
+    font-size:15px; font-weight:500; text-decoration:none;
+    border:1px solid var(--line); background:var(--card);
+    transition:border-color .18s, transform .18s}
+  .btn:hover{border-color:var(--accent); transform:translateY(-2px)}
+  .btn.primary{background:linear-gradient(100deg,var(--accent),var(--accent-2)); border-color:transparent; color:#fff}
+  .btn.primary:hover{opacity:.9}
+  .facts{display:flex; flex-wrap:wrap; gap:7px; margin:18px 0 0}
+  .tag{font-size:12.5px; padding:5px 11px; border-radius:6px;
+    background:rgba(91,140,255,.10); border:1px solid rgba(91,140,255,.22); color:#a9c0ff}
+  section{padding:44px 0 8px}
+  h2{font-size:12px; text-transform:uppercase; letter-spacing:.18em; color:var(--muted); font-weight:600; margin:0 0 22px}
+  h3{font-size:20px; letter-spacing:-0.01em; margin:30px 0 8px}
+  p{color:#c6ccd6; margin:0 0 18px; max-width:66ch}
+  p strong{color:var(--fg); font-weight:600}
+  .note{
+    border:1px solid rgba(193,79,255,.3); background:rgba(193,79,255,.06);
+    border-radius:12px; padding:14px 18px; font-size:14.5px; color:var(--muted); margin:26px 0;
+  }
+  figure{margin:30px 0}
+  figure img{width:100%; border-radius:14px; border:1px solid var(--line); display:block}
+  figcaption{font-size:13.5px; color:var(--muted); margin-top:10px}
+  .steps{counter-reset:step; margin:6px 0 10px; padding:0; list-style:none}
+  .steps li{
+    counter-increment:step; position:relative; padding:0 0 26px 52px; margin:0;
+  }
+  .steps li::before{
+    content:counter(step); position:absolute; left:0; top:2px;
+    width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:600; color:#fff; border-radius:10px;
+    background:linear-gradient(120deg,var(--accent),var(--accent-2));
+  }
+  .steps li::after{
+    content:""; position:absolute; left:15px; top:40px; bottom:6px; width:2px;
+    background:var(--line);
+  }
+  .steps li:last-child::after{display:none}
+  .steps h4{margin:0 0 6px; font-size:16.5px}
+  .steps p{font-size:15.5px; margin:0}
+  .cta{
+    position:relative; padding:34px; border-radius:16px; overflow:hidden;
+    border:1px solid var(--line); background:var(--card); margin:40px 0 0;
+  }
+  .cta::before{content:""; position:absolute; inset:0;
+    background:linear-gradient(140deg, rgba(91,140,255,.09), rgba(193,79,255,.05))}
+  .cta > *{position:relative}
+  footer{padding:44px 0 72px; border-top:1px solid var(--line); margin-top:64px;
+    font-size:14px; color:var(--muted); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  footer a{text-decoration:none}
+  footer a:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+
+  <nav class="topnav"><a href="../">← Raj — Projects &amp; Portfolio</a></nav>
+
+  <header>
+    <span class="eyebrow">Case study · In production</span>
+    <h1>From spreadsheet<br>to <span class="grad">system.</span></h1>
+    <p class="lede">How a regional treasury office went from one breaking, share-everything
+       spreadsheet to a self-hosted collections database with logins, audit trails, and
+       official reports generated in seconds.</p>
+    <nav class="links">
+      <a class="btn primary" href="../collections-demo/" target="_blank" rel="noopener">Try the live demo</a>
+      <a class="btn" href="https://github.com/azizrajimbunda-eng/collections-management-system" target="_blank" rel="noopener">Source on GitHub</a>
+    </nav>
+    <div class="facts">
+      <span class="tag">Python / Flask</span><span class="tag">SQLite</span>
+      <span class="tag">Vanilla JS SPA</span><span class="tag">Role-based access</span>
+      <span class="tag">Live since July 2026</span>
+    </div>
+  </header>
+
+  <div class="note">Everything on this page and in the public repository is <strong>fictionalized</strong> —
+    the office's identity is withheld, and the region, ministries, agencies, officials, seals, bank,
+    and every figure are invented demonstration data. Nothing confidential or real is published.</div>
+
+  <section>
+    <h2>Why we made it</h2>
+    <p>The treasury office of a regional government in the Philippines tracks collections from
+       more than thirty ministries and agencies — hundreds of millions of pesos a year. All of it
+       lived in one shared Google Sheets workbook. (The office's identity is withheld here; every
+       name, agency, and figure shown is fictionalized.)</p>
+    <p>The workbook depended on Google-only formulas that silently broke in Excel. There was no
+       record of who changed a figure, or when, or why. And every official report and
+       certification — the documents the office exists to produce — was assembled by hand,
+       cell by cell, every time.</p>
+    <p><strong>For an office handling public funds, those aren't inconveniences; they're risks</strong> —
+       accuracy risk, accountability risk, and hours of skilled staff time lost to copy-paste work.
+       We needed one source of truth with a memory of every change, that produces official
+       documents correctly, every time.</p>
+    <figure>
+      <img src="dashboard.png" alt="Dashboard with KPIs, monthly collections chart, and breakdowns (sample data)">
+      <figcaption>The dashboard: totals, target accomplishment, monthly trend, and breakdowns — all sample data.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>How we made it</h2>
+    <ol class="steps">
+      <li><h4>Map what the office actually does</h4>
+        <p>Before writing code: break the workbook down sheet by sheet — the master database,
+           dashboards, ledgers, report formats, lookup lists. Understand the workflow, not just the formulas.</p></li>
+      <li><h4>Migrate the data — and prove it ties</h4>
+        <p>Every transaction and org-code mapping rebuilt, with one acid test: the new totals must
+           match the workbook to the centavo. Repeated after every major feature. In treasury work,
+           "close enough" doesn't exist.</p></li>
+      <li><h4>Ship the smallest useful version</h4>
+        <p>Phase 1 was a single HTML file — no install, no server, works fully offline. Double-click
+           and the whole app opens: dashboard, auto-filling data entry, records, printable reports.
+           A zero-risk tool that earned the office's trust.</p></li>
+      <li><h4>Build the real system</h4>
+        <p>Phase 2: a Flask + SQLite web server on one office PC, used by the whole team through
+           their browsers over the office LAN. Deliberately boring technology — the entire database
+           is one file, trivial to back up, nothing to administer, no internet dependency.</p></li>
+      <li><h4>Add what a spreadsheet can never give you</h4>
+        <p>Logins with four roles (admin, encoder, certifier, viewer) enforced server-side. An
+           append-only audit log under the real logged-in user. Numbered, tamper-evident
+           certifications with amount-in-words. Reports in the office's mandated official formats.</p></li>
+      <li><h4>Harden it, then attack it</h4>
+        <p>Password hashing, login lockout, no default passwords, server-side validation,
+           formula-injection protection in Excel exports — then multiple rounds of adversarial
+           security review, with every finding fixed and re-verified before go-live.</p></li>
+      <li><h4>Deploy for a non-technical office</h4>
+        <p>Live on the office's Windows PC since July 2026, with point-and-click setup and update
+           procedures, and automatic daily backups. No IT department required — that constraint
+           shaped the whole design.</p></li>
+      <li><h4>Improve from real feedback</h4>
+        <p>The best post-launch features came from the staff using it daily: keyboard-first
+           autocomplete from the data-entry officer, a new mandated report layout from a teammate.
+           Build, verify to the centavo, review, deploy.</p></li>
+    </ol>
+    <figure>
+      <img src="report.png" alt="Official-format nested collection report on letterhead (sample data)">
+      <figcaption>The office's mandated nested report format, generated live from the database.</figcaption>
+    </figure>
+    <figure>
+      <img src="certification.png" alt="Per-agency certification with letterhead, revenue classification, and signature blocks (sample data)">
+      <figcaption>Per-agency certification: letterhead, revenue classes, sequential numbering — names shown are fictitious.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>How it benefited the office</h2>
+    <p><strong>Time:</strong> reports that took hours of manual assembly are generated in seconds,
+       in the exact official format, verified to the centavo against the legacy records.</p>
+    <p><strong>Trust in the numbers:</strong> one database instead of competing spreadsheet copies.
+       Every figure has a history — who entered it, who changed it, when. Certifications are
+       numbered, consistent, and tamper-evident, and duty separation is real: encoding, certifying,
+       and administering are different permissions held by different people.</p>
+    <p><strong>Resilience:</strong> multiple staff working at once without overwriting each other,
+       automatic daily backups, and a system running entirely on hardware the office already owned —
+       no subscriptions, no cloud dependency, no recurring cost.</p>
+    <p>The spreadsheet asked the staff to be careful. <strong>The system makes carefulness the default.</strong></p>
+
+    <div class="cta">
+      <p style="margin-bottom:20px">Curious how it works? The demo runs entirely in your browser
+         with sample data — click around the dashboard, add an entry, print a report.</p>
+      <nav class="links">
+        <a class="btn primary" href="../collections-demo/" target="_blank" rel="noopener">Try the live demo</a>
+        <a class="btn" href="https://github.com/azizrajimbunda-eng/collections-management-system" target="_blank" rel="noopener">Read the code</a>
+        <a class="btn" href="../#contact">Work with me</a>
+      </nav>
+    </div>
+  </section>
+
+  <footer>
+    <span>© <span id="year">2026</span> Raj</span>
+    <span>
+      <a href="https://www.facebook.com/rajdoeswhaat" target="_blank" rel="noopener">Facebook</a> ·
+      <a href="https://github.com/azizrajimbunda-eng" target="_blank" rel="noopener">GitHub</a> ·
+      <a href="mailto:azizrajimbunda@gmail.com">azizrajimbunda@gmail.com</a>
+    </span>
+  </footer>
+</div>
+<script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>
