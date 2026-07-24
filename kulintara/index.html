@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kulintara — Unified Government Accounting System · Case Study · Raj</title>
+<meta name="description" content="Kulintara: an open source unified accounting system modeled on Philippine government bookkeeping — GAM, UACS, and COA document flows. The concept, the build, the struggles, and a guided tour.">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kulintara — Unified Government Accounting System">
+<meta property="og:description" content="An open source accounting system modeled on how Philippine government agencies keep their books. Gapless document numbers, exact-decimal money, an append-only ledger — with a guided walkthrough demo.">
+<meta property="og:image" content="https://azizrajimbunda-eng.github.io/kulintara/og-dashboard.jpg">
+<meta property="og:url" content="https://azizrajimbunda-eng.github.io/kulintara/">
+
+<style>
+  :root{
+    --bg:#08090c; --fg:#f4f5f7; --muted:#8b93a1;
+    --line:#1e222b; --card:#101319;
+    --accent:#5b8cff; --accent-2:#c14fff;
+    --max:800px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 24px; position:relative; z-index:1}
+  a{color:inherit}
+  .glow{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(600px 400px at 15% 0%, rgba(91,140,255,.16), transparent 70%),
+      radial-gradient(500px 400px at 85% 20%, rgba(193,79,255,.12), transparent 70%);
+  }
+  .topnav{padding:28px 0; font-size:14px}
+  .topnav a{color:var(--muted); text-decoration:none}
+  .topnav a:hover{color:var(--accent)}
+  header{padding:36px 0 20px}
+  .eyebrow{
+    display:inline-block; font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); border:1px solid rgba(91,140,255,.35); border-radius:999px;
+    padding:6px 14px; margin-bottom:22px;
+  }
+  h1{font-size:clamp(32px,6vw,52px); line-height:1.08; margin:0 0 18px; letter-spacing:-0.03em; font-weight:700}
+  h1 .grad{background:linear-gradient(100deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lede{font-size:19px; color:var(--muted); margin:0 0 26px}
+  .links{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:10px}
+  .btn{display:inline-flex; align-items:center; padding:11px 20px; border-radius:10px;
+    font-size:15px; font-weight:500; text-decoration:none;
+    border:1px solid var(--line); background:var(--card); cursor:pointer;
+    transition:border-color .18s, transform .18s}
+  .btn:hover{border-color:var(--accent); transform:translateY(-2px)}
+  .btn.primary{background:linear-gradient(100deg,var(--accent),var(--accent-2)); border-color:transparent; color:#fff}
+  .btn.primary:hover{opacity:.9}
+  .facts{display:flex; flex-wrap:wrap; gap:7px; margin:18px 0 0}
+  .tag{font-size:12.5px; padding:5px 11px; border-radius:6px;
+    background:rgba(91,140,255,.10); border:1px solid rgba(91,140,255,.22); color:#a9c0ff}
+  section{padding:44px 0 8px}
+  h2{font-size:12px; text-transform:uppercase; letter-spacing:.18em; color:var(--muted); font-weight:600; margin:0 0 22px}
+  h3{font-size:20px; letter-spacing:-0.01em; margin:30px 0 8px}
+  p{color:#c6ccd6; margin:0 0 18px; max-width:66ch}
+  p strong{color:var(--fg); font-weight:600}
+  .note{
+    border:1px solid rgba(193,79,255,.3); background:rgba(193,79,255,.06);
+    border-radius:12px; padding:14px 18px; font-size:14.5px; color:var(--muted); margin:26px 0;
+  }
+  figure{margin:30px 0}
+  figure img{width:100%; border-radius:14px; border:1px solid var(--line); display:block}
+  figcaption{font-size:13.5px; color:var(--muted); margin-top:10px}
+  .steps{counter-reset:step; margin:6px 0 10px; padding:0; list-style:none}
+  .steps li{counter-increment:step; position:relative; padding:0 0 26px 52px; margin:0}
+  .steps li::before{
+    content:counter(step); position:absolute; left:0; top:2px;
+    width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:600; color:#fff; border-radius:10px;
+    background:linear-gradient(120deg,var(--accent),var(--accent-2));
+  }
+  .steps li::after{content:""; position:absolute; left:15px; top:40px; bottom:6px; width:2px; background:var(--line)}
+  .steps li:last-child::after{display:none}
+  .steps h4{margin:0 0 6px; font-size:16.5px}
+  .steps p{font-size:15.5px; margin:0}
+
+  /* Guided tour */
+  .tour{
+    border:1px solid var(--line); border-radius:16px; background:var(--card);
+    padding:20px; margin:26px 0;
+  }
+  .tour-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+  .tour-title{font-size:17px; font-weight:600; margin:0}
+  .tour-count{font-size:13px; color:var(--muted)}
+  .tour img{width:100%; border-radius:12px; border:1px solid var(--line); display:block; background:#000}
+  .tour-caption{font-size:14.5px; color:var(--muted); margin:12px 0 16px; min-height:3.2em}
+  .tour-nav{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .dots{display:flex; gap:8px; flex-wrap:wrap}
+  .dot{width:10px; height:10px; border-radius:50%; background:var(--line); border:0; padding:0; cursor:pointer}
+  .dot.on{background:linear-gradient(120deg,var(--accent),var(--accent-2))}
+  .tour-btns{display:flex; gap:10px}
+
+  .cta{
+    position:relative; padding:34px; border-radius:16px; overflow:hidden;
+    border:1px solid var(--line); background:var(--card); margin:40px 0 0;
+  }
+  .cta::before{content:""; position:absolute; inset:0;
+    background:linear-gradient(140deg, rgba(91,140,255,.09), rgba(193,79,255,.05))}
+  .cta > *{position:relative}
+  footer{padding:44px 0 72px; border-top:1px solid var(--line); margin-top:64px;
+    font-size:14px; color:var(--muted); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  footer a{text-decoration:none}
+  footer a:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+
+  <nav class="topnav"><a href="../">← Raj — Projects &amp; Portfolio</a></nav>
+
+  <header>
+    <span class="eyebrow">Case study · Open source</span>
+    <h1>One set of books,<br><span class="grad">done right.</span></h1>
+    <p class="lede">Kulintara is a unified accounting system modeled on how Philippine
+       government agencies actually keep their books — the Government Accounting Manual,
+       the UACS chart of accounts, and the COA document flows, from official receipt to
+       trial balance.</p>
+    <nav class="links">
+      <a class="btn primary" href="#tour">Take the guided tour</a>
+      <a class="btn" href="https://github.com/azizrajimbunda-eng/kulintara" target="_blank" rel="noopener">Source on GitHub</a>
+    </nav>
+    <div class="facts">
+      <span class="tag">Laravel 12 · Vue 3 · TypeScript</span>
+      <span class="tag">PostgreSQL</span>
+      <span class="tag">226 tests</span>
+      <span class="tag">Open source · AGPL-3.0</span>
+      <span class="tag">Gov't finance</span>
+    </div>
+  </header>
+
+  <div class="note">
+    <strong>The honest fine print:</strong> Kulintara is an independent demonstration
+    prototype. It is not an official system of, endorsed by, or evaluated by the
+    Bangsamoro Government, the Commission on Audit, or any agency, and it must not be
+    used to keep an agency's official books. Every name and figure in the screenshots
+    is fictitious seed data.
+  </div>
+
+  <section>
+    <h2>The concept</h2>
+    <p>
+      Government accounting in the Philippines is not freeform bookkeeping — it is a
+      tightly specified discipline. The Government Accounting Manual (GAM) says how the
+      books are kept, the Unified Accounts Code Structure (UACS) says what every account
+      is called, and money moves through a fixed cast of documents: obligation requests,
+      disbursement vouchers, official receipts, deposits, journal entry vouchers.
+    </p>
+    <p>
+      In many offices those flows still live across separate tools — a spreadsheet here,
+      a logbook there, a standalone app for one function that doesn't talk to the next.
+      <strong>Kulintara asks a simple question: what would it look like if the whole
+      framework lived in one system</strong> — one place where a receipt, a voucher, and
+      the trial balance are the same data, viewed from different angles?
+    </p>
+    <p>
+      The design goal wasn't "an app with accounting features." It was to model the
+      rulebook faithfully: gapless document numbering, an append-only ledger, corrections
+      by reversal instead of edits, roles that mirror how a real finance office divides
+      its work — accountant, cashier, budget officer, admin, viewer.
+    </p>
+  </section>
+
+  <section>
+    <h2>How it was built</h2>
+    <ol class="steps">
+      <li>
+        <h4>Domain model first, screens later</h4>
+        <p>Before any interface existed, the document lifecycles were written down as
+           rules: a DV moves draft → for approval → approved → paid, and each transition
+           is enforced server-side. An ORS freezes its fund cluster and date the moment a
+           number is issued, because the number encodes both.</p>
+      </li>
+      <li>
+        <h4>Money as exact decimals, never floats</h4>
+        <p>Every amount is a decimal handled with precise arithmetic all the way through —
+           even aggregates coming back from SQL pass through a single decimal helper. At
+           scale, a cent lost to rounding is a cent an auditor will ask about.</p>
+      </li>
+      <li>
+        <h4>Document numbers that can survive a race</h4>
+        <p>Gapless numbering is only trustworthy if two people saving at the same instant
+           can't get the same number. Allocation happens per fund cluster and period under
+           a database lock, verified with 200 concurrent allocations: 200 unique,
+           contiguous numbers. In a gapless series, a missing number is evidence; a
+           duplicate is a defect.</p>
+      </li>
+      <li>
+        <h4>Tests on the engine production actually uses</h4>
+        <p>226 tests cover the accounting behaviour, and they run on PostgreSQL — not a
+           lightweight stand-in. CI runs the suite plus linters on every push.</p>
+      </li>
+      <li>
+        <h4>Screenshots as a build artifact</h4>
+        <p>Even the documentation screenshots are generated by a script against freshly
+           seeded demo data, so they can be regenerated after any interface change instead
+           of quietly going stale.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>What fought back</h2>
+    <h3>The date bug hiding in the test database</h3>
+    <p>
+      The test suite originally ran on SQLite because it's fast. But SQLite has no real
+      DATE type — a date column round-trips as a midnight timestamp string, and a
+      date-range filter compared against it silently drops the last day of the period.
+      For an accounting system, that is not a rounding error; <strong>that is a wrong
+      trial balance.</strong> The suite moved to PostgreSQL, the engine production uses.
+    </p>
+    <h3>The safety setting that didn't work</h3>
+    <p>
+      Moving tests to a persistent database created a new danger: Laravel's test refresh
+      drops every table in whatever database is configured. Misconfigure the connection
+      and the suite isn't just wrong — it's destructive. PHPUnit's documented answer,
+      <code>force="true"</code> on the env config, looked right, so it went in with a
+      confident comment. Then it got tested: point the suite at a database that shouldn't
+      exist, run it. <strong>It happily created and migrated that database.</strong> The
+      "fix" wrote to two places Laravel reads <em>after</em> the one the shell already
+      owns. The real fix asks the resolved connection itself for its database and driver,
+      and refuses to run against anything unexpected. A safety mechanism you have not
+      seen fail is just an assumption with good branding.
+    </p>
+    <h3>Immutability vs. convenience</h3>
+    <p>
+      The tempting design is to let users edit posted entries — it feels helpful. The
+      correct design is the uncomfortable one: once posted, a journal entry can never be
+      edited or deleted. Corrections happen by reversal, with a required reason, linked
+      back to the original. Both stay in the ledger forever. An auditor can always see
+      what was recorded, what corrected it, and why.
+    </p>
+  </section>
+
+  <section id="tour">
+    <h2>The result — guided tour</h2>
+    <p>Eight screens, in the order money actually moves through an office. All figures
+       are fictitious seeded demo data. Use the buttons or your arrow keys.</p>
+
+    <div class="tour" id="tourBox">
+      <div class="tour-head">
+        <p class="tour-title" id="tourTitle"></p>
+        <span class="tour-count" id="tourCount"></span>
+      </div>
+      <img id="tourImg" src="" alt="Kulintara screenshot">
+      <p class="tour-caption" id="tourCap"></p>
+      <div class="tour-nav">
+        <div class="dots" id="tourDots"></div>
+        <div class="tour-btns">
+          <button class="btn" id="tourPrev">← Back</button>
+          <button class="btn primary" id="tourNext">Next →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Free and open source</h2>
+    <p>
+      Kulintara is free software under the AGPL-3.0 — run it, study it, modify it,
+      redistribute it. The full source, design docs, user guide, and engineering notes
+      are public. Contributions are welcome; the repo has a contributing guide and a
+      code of conduct. Deploying it for real government books would require the proper
+      COA evaluation and approval — that responsibility sits with whoever deploys it.
+    </p>
+    <div class="cta">
+      <h3 style="margin-top:0">Explore the code</h3>
+      <p>Everything is on GitHub — including the write-up of the PHPUnit safety
+         mechanism that failed, and how the test-database guard works now.</p>
+      <nav class="links" style="margin-bottom:0">
+        <a class="btn primary" href="https://github.com/azizrajimbunda-eng/kulintara" target="_blank" rel="noopener">github.com/azizrajimbunda-eng/kulintara</a>
+        <a class="btn" href="mailto:azizrajimbunda@gmail.com?subject=Kulintara">Email me about it</a>
+      </nav>
+    </div>
+  </section>
+
+  <footer>
+    <span>© <span id="year">2026</span> Raj</span>
+    <span>
+      <a href="https://www.facebook.com/rajdoeswhaat" target="_blank" rel="noopener">Facebook</a> ·
+      <a href="https://github.com/azizrajimbunda-eng" target="_blank" rel="noopener">GitHub</a> ·
+      <a href="mailto:azizrajimbunda@gmail.com">azizrajimbunda@gmail.com</a>
+    </span>
+  </footer>
+
+</div>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  const SLIDES = [
+    {img:'dashboard.webp', title:'Dashboard',
+     cap:'The month at a glance: collections in, disbursements out, cash position, and the documents waiting for someone to act on them.'},
+    {img:'official-receipts.webp', title:'Official receipts — money in',
+     cap:'A cashier issues a receipt and the number is assigned automatically — gapless within its fund cluster and period. You cannot pick one, and you cannot skip one.'},
+    {img:'obligation-requests.webp', title:'Obligation requests — committing the budget',
+     cap:'Before any money leaves, a budget officer obligates funds. Fund cluster and date freeze the moment the number is issued, because the number encodes both.'},
+    {img:'disbursement-vouchers.webp', title:'Disbursement vouchers — money out',
+     cap:'Draft → for approval → approved → paid, every transition enforced on the server. Gross, deductions, and net are computed — withholding tax, GSIS, Pag-IBIG.'},
+    {img:'journal-entry-vouchers.webp', title:'Journal entry vouchers',
+     cap:'Source documents generate draft JEVs; an accountant reviews and posts. Posting refuses to proceed unless debits equal credits to the centavo and the period is open.'},
+    {img:'general-ledger.webp', title:'General ledger',
+     cap:'Running balance per account honouring its normal balance, opening figure carried in, every movement traceable back to its voucher. Posted entries are immutable — corrections are reversals.'},
+    {img:'journals.webp', title:'The four GAM journals',
+     cap:'General journal, cash receipts, cash disbursements, check disbursements — the journals the manual prescribes, viewable, printable, exportable.'},
+    {img:'trial-balance.webp', title:'Trial balance',
+     cap:'Posted balances per account with a live balanced / out-of-balance indicator. If it is out by one centavo, it says so — the system never rounds a difference away.'},
+  ];
+
+  let i = 0;
+  const img = document.getElementById('tourImg'),
+        cap = document.getElementById('tourCap'),
+        title = document.getElementById('tourTitle'),
+        count = document.getElementById('tourCount'),
+        dots = document.getElementById('tourDots');
+
+  SLIDES.forEach((s, n) => {
+    const d = document.createElement('button');
+    d.className = 'dot'; d.setAttribute('aria-label', 'Go to step ' + (n+1));
+    d.addEventListener('click', () => go(n));
+    dots.appendChild(d);
+    const pre = new Image(); pre.src = s.img;   // preload
+  });
+
+  function go(n){
+    i = (n + SLIDES.length) % SLIDES.length;
+    const s = SLIDES[i];
+    img.src = s.img; img.alt = 'Kulintara — ' + s.title;
+    title.textContent = s.title;
+    cap.textContent = s.cap;
+    count.textContent = (i+1) + ' / ' + SLIDES.length;
+    [...dots.children].forEach((d, n2) => d.classList.toggle('on', n2 === i));
+  }
+  document.getElementById('tourNext').addEventListener('click', () => go(i+1));
+  document.getElementById('tourPrev').addEventListener('click', () => go(i-1));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') go(i+1);
+    if (e.key === 'ArrowLeft') go(i-1);
+  });
+  go(0);
+</script>
+</body>
+</html>
